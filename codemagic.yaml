@@ -1,20 +1,18 @@
 workflows:
   android-apk:
     name: Gestao de Imoveis - APK
-    instance_type: linux_x2
     max_build_duration: 30
+    instance_type: linux_x2
+
     scripts:
-      - name: Extrair projeto Android
+      - name: Configurar Android SDK
         script: |
-          rm -rf build_project
-          mkdir -p build_project
-          unzip -q Gestao_de_Imoveis_Android.zip -d build_project
-      - name: Compilar APK de release
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/local.properties"
+
+      - name: Compilar APK
         script: |
-          cd build_project/gestao_android
-          curl -fsSL https://services.gradle.org/distributions/gradle-8.7-bin.zip -o /tmp/gradle.zip
-          rm -rf /tmp/gradle-8.7
-          unzip -q /tmp/gradle.zip -d /tmp
-          /tmp/gradle-8.7/bin/gradle --no-daemon assembleRelease
+          chmod +x gradlew
+          ./gradlew assembleRelease
+
     artifacts:
-      - build_project/gestao_android/app/build/outputs/apk/release/*.apk
+      - app/build/outputs/**/*.apk

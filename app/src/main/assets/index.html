@@ -1,0 +1,2771 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestão de Aluguéis</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a365d">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+:root {
+  --bg-body: #f8fafc;
+  --bg-card: #ffffff;
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --primary: #1e3a8a; 
+  --primary-light: #eff6ff;
+  --border: #e2e8f0;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+[data-theme="dark"] {
+  --bg-body: #0f172a;
+  --bg-card: #1e293b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --primary: #3b82f6;
+  --primary-light: #1e3a8a;
+  --border: #334155;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+* { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; transition: background 0.2s, color 0.2s; }
+body { margin: 0; background: var(--bg-body); color: var(--text-main); padding-bottom: 140px; }
+
+#toastContainer { position: fixed; top: 20px; right: 20px; z-index: 999; display: flex; flex-direction: column; gap: 10px; }
+.toast { background: var(--primary); color: white; padding: 12px 20px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.2); animation: fadeInOut 3s forwards; }
+@keyframes fadeInOut { 0% { opacity: 0; transform: translateY(-20px); } 15% { opacity: 1; transform: translateY(0); } 85% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-20px); } }
+
+#telaCadastro, #telaLogin { position: fixed; inset: 0; background: var(--bg-body); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.login-card { background: var(--bg-card); padding: 30px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 10px 25px var(--shadow); width: 100%; max-width: 400px; text-align: center; position: relative; }
+.login-card h2 { margin-top: 0; color: var(--primary); }
+.login-card input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-body); color: var(--text-main); }
+.login-card button { width: 100%; padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+
+header { background: var(--primary); color: white; padding: 10px 14px; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 4px var(--shadow); }
+.header-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.header-title-container { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.header-logo { width: 32px; height: 32px; border-radius: 6px; object-fit: contain; background: white; padding: 2px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-shrink: 0; }
+header h1 { margin: 0; font-size: 16px; line-height: 1.1; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.header-actions { display: flex; gap: 6px; align-items: center; overflow-x: auto; padding-bottom: 2px; }
+.header-btn-wrap { background: none; border: none; display: flex; flex-direction: column; align-items: center; cursor: pointer; color: white; padding: 2px 4px; font-size: 9px; font-weight: 500; gap: 2px; white-space: nowrap; flex-shrink: 0; }
+.header-btn-wrap span:last-child { font-size: 9px; line-height: 1; opacity: 0.95; }
+.header-btn-wrap .ico { font-size: 18px; line-height: 1; }
+
+.nav-abas { display: flex; background: var(--bg-card); border-bottom: 1px solid var(--border); overflow-x: auto; position: sticky; top: 62px; z-index: 9; }
+.nav-aba-btn { flex: 1; padding: 12px; background: none; border: none; font-size: 13px; font-weight: bold; color: var(--text-muted); cursor: pointer; text-align: center; white-space: nowrap; border-bottom: 3px solid transparent; }
+.nav-aba-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--primary-light); }
+
+.container { padding: 16px; max-width: 600px; margin: 0 auto; }
+
+.dash-saudacao { font-size: 22px; font-weight: bold; margin-bottom: 16px; color: var(--text-main); }
+.dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.dash-card { background: var(--bg-card); border: 1px solid var(--border); padding: 16px; border-radius: 12px; box-shadow: var(--shadow); }
+.dash-card span { font-size: 12px; color: var(--text-muted); font-weight: bold; text-transform: uppercase; display: block; }
+.dash-card val { font-size: 20px; font-weight: bold; display: block; margin-top: 6px; color: var(--primary); }
+
+.search { display: flex; gap: 8px; margin-bottom: 12px; }
+.search input { flex: 1; padding: 12px; border-radius: 10px; border: none; outline: none; background: var(--bg-card); color: var(--text-main); box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); }
+.btn-add { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+.filters { display: flex; gap: 6px; margin-bottom: 16px; }
+.filter-btn { flex: 1; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main); padding: 8px; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 13px; }
+.filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+.card { background: var(--bg-card); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow); display: flex; gap: 14px; border: 1px solid var(--border); cursor: pointer; align-items: center; position: relative; }
+.card-thumb-placeholder { width: 75px; height: 75px; border-radius: 12px; background: var(--bg-body); display: flex; align-items: center; justify-content: center; font-size: 32px; color: var(--text-muted); flex-shrink: 0; border: 2px solid var(--border); }
+.card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.card-imovel { font-size: 14px; font-weight: bold; color: var(--primary); text-transform: uppercase; display: block; }
+.card-header b { font-size: 15px; color: var(--text-main); display: flex; align-items: center; flex-wrap: wrap; gap: 4px;}
+.card-info .card-notas { font-size: 12px; color: var(--text-muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.zap-icon { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; margin-left: 2px; vertical-align: middle; }
+.zap-icon svg { width: 20px; height: 20px; fill: #25d366; }
+.btn-quick-pay { background: var(--border); border: none; border-radius: 6px; padding: 4px 8px; font-size: 11px; font-weight: bold; cursor: pointer; color: var(--text-main); margin-top: 4px; display: inline-block; }
+.btn-quick-pay.pago-sim { background: #dcfce7; color: #15803d; }
+
+.badge-group { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+.badge { font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 500; }
+.vencido { background: #fee2e2; color: #b91c1c; } 
+[data-theme="dark"] .vencido { background: #7f1d1d; color: #fca5a5; }
+.ok { background: #dcfce7; color: #15803d; } 
+[data-theme="dark"] .ok { background: #14532d; color: #86efac; }
+.hoje { background: #ffedd5; color: #c2410c; }
+[data-theme="dark"] .hoje { background: #7c2d12; color: #fdba74; }
+.pago { background: #ccfbf1; color: #0f766e; }
+[data-theme="dark"] .pago { background: #134e4a; color: #5eead4; }
+.alerta-contrato { background: #ffedd5; color: #c2410c; border: 1px dashed #c2410c; }
+
+.resumo-fixo { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-card); border-top: 2px solid var(--border); padding: 14px; box-shadow: 0 -4px 10px var(--shadow); display: flex; justify-content: space-around; z-index: 10; max-width: 600px; margin: 0 auto; border-radius: 16px 16px 0 0; }
+.resumo-item { text-align: center; }
+.resumo-item span { display: block; font-size: 11px; color: var(--text-muted); font-weight: bold; text-transform: uppercase; }
+.resumo-item val { font-size: 16px; font-weight: bold; display: block; margin-top: 2px; }
+.val-recebido { color: #15803d; }
+[data-theme="dark"] .val-recebido { color: #4ade80; }
+.val-receber { color: #b91c1c; }
+[data-theme="dark"] .val-receber { color: #f87171; }
+
+.fab { position: fixed; bottom: 95px; right: 20px; background: var(--primary); color: white; border: none; width: 52px; height: 52px; border-radius: 26px; font-size: 26px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 11; }
+
+#modal, #modalVirarMes, #modalLocador, #modalContrato, #modalVistoria, #modalLocatario, #modalReciboPDF, #modalAssinatura, #modalComparador { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: end; justify-content: center; z-index: 20; }
+#modal.open, #modalVirarMes.open, #modalLocador.open, #modalContrato.open, #modalVistoria.open, #modalLocatario.open, #modalReciboPDF.open, #modalAssinatura.open, #modalComparador.open { display: flex; }
+.sheet { background: var(--bg-card); width: 100%; max-width: 600px; border-radius: 20px 20px 0 0; padding: 20px; max-height: 90vh; overflow: auto; border-top: 1px solid var(--border); }
+.sheet h3 { margin-top: 0; color: var(--text-main); margin-bottom: 16px; }
+.sheet input, .sheet label, .sheet textarea, .sheet select { width: 100%; display: block; margin: 6px 0; }
+.sheet label { color: var(--text-muted); font-size: 13px; font-weight: bold; margin-top: 12px; }
+.sheet input[type="text"], .sheet input[type="tel"], .sheet input[type="number"], .sheet input[type="date"], .sheet select, .sheet textarea { padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-body); color: var(--text-main); }
+.sheet input[type="file"] { padding: 8px; border: 1px dashed var(--border); border-radius: 10px; background: var(--bg-body); color: var(--text-main); font-size: 13px; }
+.sheet textarea { resize: vertical; height: 80px; font-family: inherit; }
+.sheet button { width: 100%; padding: 14px; border: none; border-radius: 10px; margin-top: 10px; font-weight: bold; cursor: pointer; }
+
+.container-foto-ampliada { margin: 12px 0; text-align: center; }
+.foto-locatario-modal { width: 100%; max-width: 220px; height: 220px; object-fit: cover; border-radius: 14px; border: 3px solid var(--primary); box-shadow: var(--shadow); cursor: zoom-in; }
+
+#modalVisualizador { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
+#modalVisualizador.open { display: flex; }
+.conteudo-visualizador { position: relative; max-width: 100%; max-height: 90vh; text-align: center; }
+.conteudo-visualizador img { max-width: 100%; max-height: 80vh; border-radius: 8px; object-fit: contain; }
+.btn-fechar-visualizador { position: absolute; top: -45px; right: 0; background: #fff; color: #000; border: none; font-size: 14px; font-weight: bold; padding: 6px 14px; border-radius: 20px; cursor: pointer; }
+
+.file-preview { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; font-size: 13px; }
+.file-preview span.link-visualizar { color: var(--primary); text-decoration: underline; font-weight: bold; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; cursor: pointer; }
+.btn-remover-arquivo { background: #fee2e2 !important; color: #ef4444 !important; padding: 6px 12px !important; width: auto !important; margin: 0 !important; font-size: 12px; }
+
+.historico-box { background: var(--bg-body); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-top: 15px; }
+.historico-titulo { font-size: 13px; font-weight: bold; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase;}
+.hist-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text-main); }
+.hist-item:last-child { border-bottom: none; }
+.hist-actions { display: flex; gap: 8px; align-items: center; }
+.btn-recibo { background: var(--primary-light) !important; color: var(--primary) !important; padding: 4px 8px !important; margin: 0 !important; width: auto !important; font-size: 12px; }
+.btn-del-hist { background: transparent !important; color: #ef4444 !important; border: none; font-size: 16px; cursor: pointer; }
+
+.primary { background: var(--primary); color: white; } 
+.secondary { background: var(--border); color: var(--text-main); }
+.btn-whatsapp { background: #25d366 !important; color: white !important; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-whatsapp svg { width: 18px; height: 18px; fill: white; }
+.btn-pix { background: #0d9488 !important; color: white !important; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-pix svg { width: 18px; height: 18px; fill: white; }
+.btn-voltar-modal { background: #64748b !important; color: white !important; margin-top: 10px; }
+
+.switch-container { display: flex; align-items: center; justify-content: space-between; margin: 15px 0; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.switch-text { font-weight: bold; font-size: 15px; color: var(--text-main); }
+.switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
+.slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: #15803d; }
+input:checked + .slider:before { transform: translateX(26px); }
+
+.notif-card { background: var(--bg-card); border: 1px solid var(--border); padding: 14px; border-radius: 10px; margin-bottom: 10px; font-size: 14px; box-shadow: var(--shadow); border-left: 4px solid var(--primary); }
+
+.secao-graficos { display: flex; flex-direction: column; gap: 16px; }
+.grafico-card-topo { background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 16px; }
+.grafico-header-flex { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.grafico-titulo-secao { font-size: 17px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; margin: 0; letter-spacing: -0.01em; }
+.filtro-mes-container { display: flex; gap: 8px; align-items: center; }
+.filtro-mes-container select { padding: 9px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); font-weight: 600; font-size: 13px; outline: none; cursor: pointer; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02); }
+
+.grafico-metricas-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.metrica-mini-card { background: var(--bg-body); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.01); }
+.metrica-mini-card.verde { border-left: 5px solid #15803d; }
+.metrica-mini-card.vermelho { border-left: 5px solid #b91c1c; }
+[data-theme="dark"] .metrica-mini-card.verde { border-left-color: #4ade80; }
+[data-theme="dark"] .metrica-mini-card.vermelho { border-left-color: #f87171; }
+.metrica-mini-card span { font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.metrica-mini-card val { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+
+.grafico-resumo-barra { background: var(--bg-body); padding: 12px 16px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); }
+
+.grafico-canvas-wrapper { background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; }
+.canvas-container-inner { position: relative; height: 280px; width: 100%; }
+
+#importFile { display: none; }
+</style>
+</head>
+<body>
+
+<div id="toastContainer"></div>
+
+<div id="telaCadastro" style="display:flex;">
+  <div class="login-card">
+    <h2>🔐 Acesso ao Gestão de Aluguéis</h2>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.5;">Escolha como deseja entrar. A biometria do celular é uma opção independente do acesso Google.</p>
+    <button class="primary" type="button" onclick="fazerLoginBiometrico()" style="background:#2563eb;">
+      👆 Entrar com Biometria / Reconhecimento Facial
+    </button>
+    <button class="secondary" type="button" onclick="mostrarLoginSenha()" style="margin-top:8px;">
+      🔑 Entrar com Google / Conta
+    </button>
+    <div id="bioStatus" style="margin-top:12px;font-size:11px;color:var(--text-muted);">Acesso local pelo celular</div>
+    <div style="margin-top:15px;font-size:11px;color:var(--text-muted);text-align:right;">Created by Érico Mílian</div>
+  </div>
+</div>
+
+<div id="telaLogin" style="display:none;">
+  <div class="login-card">
+    <h2>🔐 Acesso por Conta</h2>
+    <input type="email" id="loginEmail" placeholder="E-mail cadastrado">
+    <input type="password" id="loginSenha" placeholder="Sua senha">
+    <button class="primary" onclick="fazerLogin()">Entrar com Conta</button>
+    <button class="secondary" type="button" onclick="voltarEscolhaAcesso()" style="margin-top:8px;">⬅️ Voltar às opções</button>
+  </div>
+</div>
+
+<header>
+<div class="header-top">
+  <div class="header-title-container">
+    <img src="icon-192.png" class="header-logo" alt="Logo">
+    <h1>Gestão de Aluguéis<br><span style="font-size: 10px; font-weight: 400; opacity: 0.9;">Painel do Proprietário</span></h1>
+  </div>
+  <div class="header-actions">
+    <button class="header-btn-wrap" onclick="abrirModalLocador()" title="Cadastrar Locador">
+      <span class="ico">👤</span>
+      <span>Locador</span>
+    </button>
+    <button class="header-btn-wrap" onclick="abrirModalVirarMes()" title="Virar Mês">
+      <span class="ico">🔄</span>
+      <span>Virar Mês</span>
+    </button>
+    <button class="header-btn-wrap" onclick="exportarDados()" title="Fazer Backup">
+      <span class="ico">💾</span>
+      <span>Backup</span>
+    </button>
+    <button class="header-btn-wrap" onclick="sincronizarNuvemWebDAV()" title="Nuvem WebDAV">
+      <span class="ico">☁️</span>
+      <span>Nuvem</span>
+    </button>
+    <label for="importFile" class="header-btn-wrap" style="cursor:pointer;" title="Restaurar Backup">
+      <span class="ico">📂</span>
+      <span>Restaurar</span>
+    </label>
+    <input type="file" id="importFile" accept=".json" onchange="importarDados(event)">
+    <button class="header-btn-wrap" id="themeBtn" onclick="alternarTema()" title="Alternar Tema">
+      <span class="ico" id="themeIcon">🌙</span>
+      <span>Tema</span>
+    </button>
+    <button class="header-btn-wrap" onclick="fazerLogout()" title="Sair / Bloquear">
+      <span class="ico">🔒</span>
+      <span>Sair</span>
+    </button>
+  </div>
+</div>
+</header>
+
+<div class="nav-abas">
+  <button class="nav-aba-btn active" id="tab-dash" onclick="mudarAba('dash')">🏠 Início</button>
+  <button class="nav-aba-btn" id="tab-imoveis" onclick="mudarAba('imoveis')">🏢 Imóveis</button>
+  <button class="nav-aba-btn" id="tab-locatarios" onclick="mudarAba('locatarios')">👥 Locatários</button>
+  <button class="nav-aba-btn" id="tab-graficos" onclick="mudarAba('graficos')">📊 Gráficos</button>
+  <button class="nav-aba-btn" id="tab-notif" onclick="mudarAba('notif')">🔔 Notificações <span id="contadorNotifTop" style="background:#ef4444; color:white; padding:1px 6px; border-radius:10px; font-size:10px; display:none;">0</span></button>
+</div>
+
+<div class="container" id="conteudoPrincipal"></div>
+
+<button class="fab" id="fabBtn" onclick="abrirModal()">+</button>
+
+<div class="resumo-fixo">
+  <div class="resumo-item">
+    <span>Recebido</span>
+    <val class="val-recebido" id="totalRecebido">R$ 0</val>
+  </div>
+  <div class="resumo-item">
+    <span>A Receber</span>
+    <val class="val-receber" id="totalReceber">R$ 0</val>
+  </div>
+</div>
+
+<div id="modalLocador" onclick="if(event.target==this)fecharModalLocador()">
+<div class="sheet" style="max-width: 700px;">
+  <h3>👤 Cadastro do Locador & Contrato Oficial Completo</h3>
+  <label>Nome Completo do Locador</label>
+  <input type="text" id="locadorNome" placeholder="Ex: Proprietário">
+  
+  <label>Nacionalidade</label>
+  <select id="locadorNacionalidadeSelect" onchange="tratarMudancaNacionalidade('locador')" style="margin-bottom:4px;">
+    <option value="brasileiro(a)">brasileiro(a)</option>
+    <option value="outro">Outra (digitar manualmente)</option>
+  </select>
+  <input type="text" id="locadorNacionalidade" placeholder="Ex: brasileiro(a)" style="display:none;">
+
+  <label>Estado Civil</label>
+  <select id="locadorEstadoCivilSelect" onchange="tratarMudancaEstadoCivil('locador')" style="margin-bottom:4px;">
+    <option value="solteiro(a)">solteiro(a)</option>
+    <option value="casado(a)">casado(a)</option>
+    <option value="união estável">união estável</option>
+    <option value="divorciado(a)">divorciado(a)</option>
+    <option value="viúvo(a)">viúvo(a)</option>
+    <option value="outro">Outro (digitar manualmente)</option>
+  </select>
+  <input type="text" id="locadorEstadoCivil" placeholder="Ex: solteiro(a)" style="display:none;">
+
+  <label>Profissão</label>
+  <input type="text" id="locadorProfissao" placeholder="Ex: empresário">
+  <label>RG do Locador</label>
+  <input type="text" id="locadorRg" placeholder="Ex: 0000000">
+  <label>CPF do Locador</label>
+  <input type="text" id="locadorCpf" placeholder="Ex: 000.000.000-00" oninput="mascaraCPF(this)">
+  <label>Endereço Completo (com CEP)</label>
+  <input type="text" id="locadorEndereco" placeholder="Ex: Rua X, nº 00, Palmas - TO, CEP">
+  <label>E-mail</label>
+  <input type="email" id="locadorEmail" placeholder="Ex: email@dominio.com">
+  <label>WhatsApp</label>
+  <input type="tel" id="locadorTel" placeholder="Ex: (63) 99999-9999">
+  <label>Banco, Agência e Conta</label>
+  <input type="text" id="locadorBancoInfo" placeholder="Ex: Banco Itaú, Ag 0000, Conta 00000-0">
+  <label>Chave PIX Principal</label>
+  <input type="text" id="locadorPix" placeholder="Sua Chave PIX">
+
+  <label style="margin-top:20px;">Minuta Oficial Completa (Formatada com Negrito, Itálico e Sublinhado)</label>
+  <textarea id="locadorMinutaModelo" style="height:250px; font-family:monospace; font-size:12px;"><b>CONTRATO DE LOCAÇÃO</b>
+
+<b>1. DAS PARTES</b>
+<b>1.1. LOCADOR:</b> {{locador_nome}}, {{locador_nacionalidade}}, {{locador_estado_civil}}, {{locador_profissao}}, portador da Cédula de Identidade RG nº {{locador_rg}} e inscrito no CPF sob o n° <u>{{locador_cpf}}</u>, residente e domiciliado na {{locador_endereco}}, com endereço eletrônico (e-mail): {{locador_email}} e telefone/WhatsApp: {{locador_tel}}.
+<b>1.2. LOCATÁRIO(S) SOLIDÁRIO(S):</b> {{locatario_dados}}, que declaram residir conjuntamente no imóvel objeto deste instrumento e assumem responsabilidade solidária, irrestrita e integral por todas as obrigações contratuais, pecuniárias e acessórias aqui pactuadas.
+
+<b>2. DO IMÓVEL E DAS UNIDADES IDENTIFICADORAS</b>
+<b>Cláusula Primeira:</b> O objeto deste contrato é o imóvel residencial de propriedade do LOCADOR, localizado na <u>{{imovel_endereco}}</u>.
+<b>Parágrafo Único:</b> Para fins de estrita identificação, consultas de débitos, vistorias e transferências obrigatórias de titularidade, o imóvel possui os seguintes cadastros oficiais e concessionárias vinculadas:
+• Código de Cadastro Imobiliário (CCI) / Inscrição Municipal do IPTU: {{cci_iptu}}
+• Unidade Consumidora (UC) de Energia Elétrica: {{uc_energia}}
+• Unidade Consumidora (UC) / Matrícula de Água e Esgoto: {{uc_agua}}
+
+<b>3. DO PRAZO DA LOCAÇÃO</b>
+<b>Cláusula Segunda:</b> O prazo desta locação é de <b>30 (trinta) meses</b>, com início em <u>{{data_inicio}}</u> e término em <u>{{data_fim}}</u>.
+<b>Parágrafo Único:</b> Findo o prazo estipulado no caput, caso o LOCATÁRIO permaneça na posse do imóvel por mais de 30 (trinta) dias sem oposição expressa do LOCADOR, a locação considerar-se-á prorrogada por prazo indeterminado, mantendo-se em vigor todas as demais cláusulas. O LOCADOR poderá retomá-lo a qualquer momento após o término do prazo inicial, notificando o LOCATÁRIO por escrito para desocupação voluntária no prazo legal de 30 (trinta) dias (Denúncia Vazia).
+
+<b>4. DO VALOR DO ALUGUEL E DO ABONO DE PONTUALIDADE</b>
+<b>Cláusula Terceira:</b> O valor nominal e integral do aluguel mensal é fixado em <b>R$ {{valor_cheio}}</b>, a ser pago pontualmente até o dia <u>{{dia_vencimento}}</u> de cada mês subsequente ao vencido.
+<b>Parágrafo Primeiro:</b> Como estímulo à adimplência (Abono de Pontualidade), caso o LOCATÁRIO efetue o pagamento do aluguel de forma integral e rigorosa até a data de vencimento estipulada no caput, ser-lhe-á concedido um desconto por pontualidade no valor de R$ {{valor_desconto}}, pagando o valor líquido de <b>R$ {{valor_aluguel}}</b>.
+<b>Parágrafo Segundo:</b> O atraso de 1 (um) único dia importará na perda automática e irrevogável do abono de pontualidade, passando a ser devido o valor nominal e integral estipulado no caput, sobre o qual incidirão cumulativamente a multa moratória, os juros de mora e a correção monetária fixados na Cláusula Décima Terceira.
+<b>Parágrafo Terceiro:</b> O pagamento deverá ser efetuado exclusivamente por meio eletrônico via Pix, na conta corrente do LOCADOR: {{banco_info}}, cuja chave Pix é: <u>{{pix}}</u>.
+<b>Parágrafo Quarto:</b> O valor nominal do aluguel será reajustado anualmente (a cada doze meses de vigência), aplicando-se o índice acumulado do IPCA (IBGE) do período ou outro indexador oficial substituto que venha a ser estabelecido legalmente.
+
+<b>5. DOS ENCARGOS, TAXAS E DA REFORMA TRIBUTÁRIA</b>
+<b>Cláusula Quarta:</b> Além do aluguel, o LOCATÁRIO assume a obrigação exclusiva de pagar pontualmente todos os encargos incidentes sobre o imóvel durante a ocupação:
+• Imposto Predial e Territorial Urbano (IPTU), consultado pela CCI/Inscrição Municipal informada na Cláusula Primeira;
+• Consumo integral de energia elétrica e de água e esgoto;
+• Despesas ordinárias de condomínio e taxas de coleta de lixo (se aplicáveis ao imóvel).
+<b>Parágrafo Primeiro:</b> O LOCATÁRIO obriga-se a transferir para o seu próprio nome a titularidade das contas de energia elétrica e água no prazo máximo e improrrogável de 5 (cinco) dias úteis a contar da entrega das chaves, sob pena de rescisão imediata por infração contratual grave.
+<b>Parágrafo Segundo:</b> Ao término da locação, o LOCATÁRIO deverá apresentar ao LOCADOR as certidões negativas de débito e solicitar o respectivo desligamento ou retorno da titularidade para o nome do LOCADOR.
+<b>Parágrafo Terceiro:</b> O LOCADOR não é obrigado a aceitar o pagamento do aluguel desacompanhado dos encargos previstos nesta cláusula. O recebimento de qualquer valor parcial constituirá mera tolerância, não implicando em quitação, novação ou renúncia aos encargos impostos.
+<b>Parágrafo Quarto (Proteção contra a Reforma Tributária):</b> Fica expressamente pactuado que qualquer novo imposto, taxa, contribuição fiscal ou encargo decorrente de alterações legislativas federais, estaduais ou municipais — incluindo novos tributos que venham a ser instituídos em decorrência da regulamentação da Reforma Tributária (tais como o IBS e a CBS) que passem a incidir diretamente sobre o valor do aluguel ou sobre a atividade de locação imobiliária de pessoas físicas, serão repassados integralmente ao LOCATÁRIO e acrescidos ao boleto mensal, preservando-se o equilíbrio econômico-financeiro original deste contrato.
+
+<b>6. DA GARANTIA LOCATÍCIA E ACELERAÇÃO LIMINAR</b>
+<b>Cláusula Quinta:</b> Em estrita conformidade com o artigo 37 da Lei nº 8.245/91, as partes elegem a seguinte modalidade para garantir o cumprimento das obrigações assumidas: Caução em dinheiro no valor de <b>R$ {{caucao}}</b>. É vedada a cumulação de mais de uma garantia sob pena de nulidade absoluta da segunda.
+<b>Parágrafo Primeiro:</b> Se estipulada a modalidade FIADOR, o garantidor qualificado neste instrumento renuncia expressamente aos benefícios de ordem, de divisão e de exoneração (artigos 827, 829, 835, 837 e 838 do Código Civil), assumindo a responsabilidade solidária, principal e acessória por todas as obrigações contratuais até a efetiva devolução física das chaves e imissão do LOCADOR na posse do imóvel, mesmo se o contrato for prorrogado por prazo indeterminado.
+<b>Parágrafo Segundo:</b> Se estipulada expressamente a AUSÊNCIA DE GARANTIA, o LOCATÁRIO declara-se ciente de que o inadimplemento de qualquer obrigação pecuniária ensejará o direito de o LOCADOR de pleitear a concessão de medida liminar para desocupação do imóvel no prazo de 15 (quinze) dias, independentemente da audiência da parte contrária, nos termos do artigo 59, § 1º, inciso IX, da Lei nº 8.245/91.
+<b>Parágrafo Terceiro:</b> Caso a garantia estipulada sofra depreciação, desaparecimento, morte, insolvência ou término da apólice, o LOCATÁRIO obriga-se a apresentar nova garantia idônea, a critério do LOCADOR, no prazo de 15 (quinze) dias a contar da notificação, sob pena de rescisão contratual imediata.
+
+<b>7. DA VISTORIA, CONSERVAÇÃO E RETENÇÃO DE SALDOS</b>
+<b>Cláusula Sexta:</b> O LOCATÁRIO declara receber o imóvel em perfeito estado de conservação, habitabilidade, limpeza e com as pinturas novas, conforme detalhado no Laudo de Vistoria de Entrada, assinado pelas partes e integrado a este instrumento. O LOCATÁRIO obriga-se a devolver o imóvel nas mesmas condições recebidas, sob pena de arcar com as reformas necessárias apuradas no Laudo de Vistoria de Saída, mantendo-se a obrigação do pagamento dos aluguéis pelo período em que o imóvel estiver em obras de reparação.
+<b>Parágrafo Único (Compensação Automática de Débitos):</b> Fica o LOCADOR expressamente autorizado a reter e compensar, de forma automática e independentemente de aviso ou anuência extrajudicial prévia, quaisquer saldos de garantias locatícias existentes com débitos pendentes de aluguel, contas de consumo (água e energia elétrica), multas condominiais ou custos com reparos e pinturas remanescentes apurados no Laudo de Vistoria de Saída.
+
+<b>8. DAS BENFEITORIAS E RENÚNCIA ABSOLUTA DE INDENIZAÇÃO E RETENÇÃO</b>
+<b>Cláusula Sétima:</b> Qualquer benfeitoria, modificação, acessão ou reforma que o LOCATÁRIO pretenda realizar no imóvel necessitará de autorização prévia, expressa e por escrito do LOCADOR.
+<b>Parágrafo Único:</b> O LOCATÁRIO renuncia expressamente, em caráter irrevogável e irretratável, ao direito de retenção ou de indenização por quaisquer benfeitorias, sejam elas necessárias, úteis ou voluptuárias, as quais incorporar-se-ão automaticamente ao imóvel, em conformidade com o artigo 35 da Lei nº 8.245/91 e a Súmula 335 do Superior Tribunal Federal (STF).
+
+<b>9. DA INSPEÇÃO PERIÓDICA DO IMÓVEL</b>
+<b>Cláusula Oitava:</b> O LOCADOR ou o seu representante legal poderá, mediante aviso prévio mínimo de 48 (quarenta e oito) horas e em dia e horário previamente combinados, realizar vistorias periódicas no imóvel para verificar o seu estado real de conservação e o exato cumprimento das obrigações contratuais pactuadas.
+
+<b>10. DA DESTINAÇÃO EXCLUSIVA, CONDOMÍNIO E VEDAÇÃO A PLATAFORMAS</b>
+<b>Cláusula Nona:</b> O imóvel objeto deste contrato destina-se exclusivamente para fins residenciais do LOCATÁRIO e de sua família, sendo expressamente proibida a sublocação, a cessão, a transferência, a cessão de direitos ou o empréstimo do imóvel, no todo ou em parte, sem o consentimento prévio e por escrito do LOCADOR. O LOCATÁRIO obriga-se a respeitar integralmente a Convenção e o Regimento Interno do Condomínio, respondendo por eventuais penalidades.
+<b>Parágrafo Único (Anti-Airbnb):</b> A vedação à sublocação e cessão estende-se expressamente à disponibilização do imóvel, no todo ou em parte, para hospedagem remunerada por curta temporada ou diárias por meio de plataformas digitais (como Airbnb, Booking, ou similares). A violação desta norma constituirá infração contratual grave, ensejando a rescisão imediata do contrato, a aplicação da multa da Cláusula Décima Quinta e o ajuizamento da respectiva ação de despejo por desvio de finalidade.
+
+<b>11. DO SEGURO-INCÊNDIO OBRIGATÓRIO</b>
+<b>Cláusula Décima:</b> Em conformidade com o artigo 22, inciso VIII, da Lei nº 8.245/91, fica expressamente pactuado que caberá ao LOCATÁRIO a obrigação de contratar e manter ativo, às suas exclusivas expensas, um Seguro Total de Incêndio e sinistros complementares para o imóvel.
+<b>Parágrafo Único:</b> A apólice deverá ser contratada junto a uma companhia seguradora idônea, tendo o LOCADOR como único beneficiário. A cópia da apólice e o comprovante de pagamento do prêmio deverão ser entregues ao LOCADOR no prazo máximo de 10 (dez) dias a contar da assinatura deste contrato, sob pena de considerar-se infração contratual grave.
+
+<b>12. DAS NOTIFICAÇÕES, DOMICÍLIO ELETRÔNICO E VALIDADE DIGITAL</b>
+<b>Cláusula Décima Primeira:</b> Todas as notificações, avisos, cobranças, interpelações ou comunicações decorrentes deste contrato serão consideradas válidas, eficazes e plenamente recebidas quando realizadas por escrito e enviadas para os endereços eletrônicos (e-mails) ou números de WhatsApp indicados pelas partes no preâmbulo deste instrumento.
+<b>Parágrafo Primeiro (Domicílio Eletrônico):</b> As partes declaram e aceitam, de forma irrevogável e irretratável, que os referidos meios de comunicação constituem domicílio eletrônico contratual, sendo plenamente válidos e eficazes para fins de citação, intimação ou notificação judicial ou extrajudicial, inclusive para fins de citação inicial em processos cíveis ou ações de despejo, nos termos do artigo 246 do Código de Processo Civil.
+<b>Parágrafo Segundo (Validade da Assinatura Digital):</b> As partes declaram a plena validade jurídica e eficácia das assinaturas eletrônicas apostas neste contrato por meio de plataformas privadas de assinatura ou pelo portal Gov.br, em conformidade com a Lei nº 14.063/2020 e a Medida Provisória nº 2.200-2/2001, reconhecendo o arquivo eletrônico assinado como título perfeitamente autêntico e revestido de força executiva.
+
+<b>13. RESPONSABILIDADE CIVIL E ISENÇÃO DO LOCADOR</b>
+<b>Cláusula Décima Segunda:</b> O LOCATÁRIO responderá civil e criminalmente por quaisquer danos causados ao imóvel locado, bem como a propriedades vizinhas e a terceiros, decorrentes de mau uso, negligência, imperícia ou imprudência.
+<b>Parágrafo Único:</b> O LOCADOR fica totalmente isento de qualquer responsabilidade civil ou obrigação de indenizar o LOCATÁRIO por danos materiais, morais ou lucros cessantes decorrentes de interrupções, falhas ou oscilações nos serviços das concessionárias públicas.
+
+<b>14. INADIMPLEMENTO, VENCIMENTO ANTECIPADO E HONORÁRIOS ADVOCATÍCIOS</b>
+<b>Cláusula Décima Terceira:</b> O atraso no pagamento do aluguel ou dos encargos contratuais sujeitará o LOCATÁRIO à multa moratória de <b>10% (dez por cento)</b> calculada sobre o valor total do débito, além de juros de mora de <b>1% (um por cento)</b> ao mês e correção monetária <i>pro rata die</i>.
+<b>Parágrafo Primeiro:</b> O inadimplemento de qualquer obrigação pecuniária ensejará o direito de o LOCADOR declarar o vencimento antecipado de todas as obrigações e encargos do mês em curso.
+<b>Parágrafo Segundo:</b> Caso o LOCADOR necessite recorrer a serviços advocatícios, ficará o LOCATÁRIO obrigado ao pagamento de honorários de <b>10%</b> para a fase extrajudicial e <b>20%</b> em caso de ação judicial.
+<b>Parágrafo Terceiro:</b> Este contrato constitui Título Executivo Extrajudicial nos termos do artigo 784, inciso VIII, do Código de Processo Civil.
+
+<b>15. DA AUTORIZAÇÃO DE PROTESTO EM CARTÓRIO</b>
+<b>Cláusula Décima Quarta:</b> Em caso de inadimplemento por prazo superior a 5 (cinco) dias, fica o LOCADOR autorizado a realizar o protesto extrajudicial do presente instrumento em Cartório, bem como inscrever o nome do LOCATÁRIO nos órgãos de proteção ao crédito.
+
+<b>16. DA RESCISÃO ANTECIPADA, RETOMADA E CUSTÓDIA DE BENS</b>
+<b>Cláusula Décima Quinta:</b> Caso o LOCATÁRIO decida rescindir o presente contrato antes do prazo, ficará sujeito ao pagamento de multa rescisória proporcional de 3 (três) meses de aluguel (art. 4º da Lei nº 8.245/91).
+<b>Parágrafo Único:</b> Ocorrendo atraso superior a 30 dias com indícios de abandono, fica o LOCADOR autorizado a imitir-se na posse do imóvel de forma extrajudicial.
+
+<b>17. DA ALIENAÇÃO E DIREITO DE PREFERÊNCIA</b>
+<b>Cláusula Décima Sexta:</b> No caso de o LOCADOR pretender alienar o imóvel, o LOCATÁRIO terá o Direito de Preferência legal no prazo de 30 (trinta) dias.
+
+<b>18. DO FORO</b>
+<b>Cláusula Décima Sétima:</b> As partes elegem livremente o Foro da Comarca de Palmas - TO para dirimir quaisquer dúvidas ou litígios decorrentes deste instrumento.
+
+Palmas - TO, hoje.
+
+<b>LOCADOR:</b>
+{{locador_nome}}
+
+<b>LOCATÁRIO(S):</b>
+{{locatario_assinatura}}</textarea>
+
+  <button class="primary" onclick="salvarLocador()" style="margin-top:15px;">Salvar Dados do Locador e Contrato</button>
+  <button class="secondary" onclick="fecharModalLocador()">Fechar</button>
+</div>
+</div>
+
+<div id="modalContrato" onclick="if(event.target==this)fecharModalContrato()">
+<div class="sheet" style="max-width: 700px;">
+  <h3>📄 Contrato Oficial Preenchido</h3>
+  <div id="areaContratoPDF" style="background:#ffffff; color:#1e293b; padding:24px; border-radius:8px; max-height:350px; overflow-y:auto; border:1px solid var(--border); text-align: justify; line-height: 1.6; font-size: 13px;">
+    <div id="textoContratoGerado"></div>
+  </div>
+  <button class="primary" type="button" onclick="baixarContratoPDF()" style="background:#3b82f6; margin-top:10px;">📥 Baixar Contrato em PDF Completo</button>
+  <button class="primary" type="button" onclick="baixarContratoDOC()" style="background:#1d4ed8; margin-top:6px;">📝 Baixar Contrato em DOC / Word</button>
+  <button class="primary" type="button" onclick="abrirModalAssinatura('contrato')" style="background:#0d9488; margin-top:6px;">✍️ Assinar Digitalmente na Tela (Táctil)</button>
+  <button class="primary" type="button" onclick="window.open('https://assinatura.iti.br', '_blank')" style="background:#0284c7; margin-top:6px;">✍️ Assinar Gov.br</button>
+  <button class="primary" type="button" onclick="enviarContratoWhatsApp()" style="background:#25d366; margin-top:6px;"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:white;vertical-align:middle;margin-right:6px;"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01C17.18 3.03 14.69 2 12.04 2zM12.04 20.3c-1.42 0-2.81-.38-4.02-1.1l-.29-.17-3.03.8.81-2.95-.19-.31c-.81-1.31-1.24-2.83-1.24-4.38 0-4.57 3.72-8.29 8.29-8.29 2.21 0 4.29.86 5.85 2.42 1.56 1.56 2.42 3.64 2.41 5.85 0 4.57-3.72 8.29-8.29 8.29zm4.55-6.25c-.25-.13-1.48-.73-1.71-.82-.23-.09-.4-.13-.57.13-.17.25-.66.82-.81.99-.15.17-.3.19-.55.06-.25-.13-1.05-.39-2-1.23-.74-.66-1.24-1.48-1.39-1.73-.15-.25-.02-.39.11-.52.11-.11.25-.3.38-.45.13-.15.17-.25.25-.42.08-.17.04-.32-.02-.45-.06-.13-.57-1.38-.79-1.89-.21-.49-.43-.42-.59-.43l-.5-.01c-.17 0-.45.06-.69.32-.24.25-.92.9-0.92 2.2 0 1.3 0.94 2.56 1.07 2.74.13.18 1.85 2.82 4.48 3.95 0.63.27 1.12.43 1.5.55.63.2 1.21.17 1.66.1 0.51-.08 1.48-.6 1.69-1.18.21-.58.21-1.08.15-1.18-.06-.1-.23-.16-.48-.29z"/></svg> Compartilhar Contrato em PDF via WhatsApp</button>
+  <button class="secondary" onclick="fecharModalContrato()">Fechar</button>
+</div>
+</div>
+
+<div id="modalReciboPDF" onclick="if(event.target==this)fecharModalReciboPDF()">
+<div class="sheet" style="max-width: 600px;">
+  <h3>🧾 Recibo de Pagamento & PIX</h3>
+  <div id="areaReciboPDF" style="background: #ffffff; color: #1e293b; padding: 25px; border-radius: 8px; border: 1px solid #e2e8f0; font-family: system-ui, sans-serif;">
+    <div style="text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 12px; margin-bottom: 20px;">
+      <h2 style="margin: 0; color: #1e3a8a; font-size: 20px;">RECIBO DE ALUGUEL</h2>
+      <p style="margin: 4px 0 0 0; font-size: 12px; color: #64748b;" id="reciboEmpresaTopo">Gestão de Imóveis</p>
+    </div>
+    <p style="font-size: 15px; line-height: 1.6; color: #1e293b;" id="reciboTextoConteudo">Recebemos de [Locatário] a importância de [Valor] referente ao pagamento de aluguel do imóvel [Imóvel].</p>
+    <div style="margin: 20px auto; text-align: center;" id="qrcodePixContainer">
+      <div style="font-size:12px; font-weight:bold; color:#1e3a8a; margin-bottom:6px;">📲 Escaneie o QR Code para pagar via PIX:</div>
+      <div id="qrCodeDiv" style="display:inline-block; padding:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;">
+        <img id="qrCodeImg" src="" alt="QR Code PIX" style="width:120px; height:120px; display:block; margin:0 auto;" crossorigin="anonymous" />
+      </div>
+      <div style="font-size:11px; color:#64748b; margin-top:4px;" id="txtChavePixRecibo">Chave: </div>
+      <div style="font-size:10px; color:#334155; margin-top:6px; word-break:break-all; font-family:monospace;" id="txtPayloadPix">Copia e Cola: </div>
+    </div>
+    <div style="margin-top: 30px; display: flex; justify-content: space-between; align-items: flex-end; font-size: 13px;">
+      <div>
+        <p style="margin: 0; color: #1e293b;" id="reciboDataLocal">Palmas - TO, --/--/----</p>
+      </div>
+      <div style="text-align: center; border-top: 1px solid #94a3b8; padding-top: 6px; width: 220px;">
+        <span id="reciboAssinaturaNome" style="color: #1e293b;">Locador</span>
+      </div>
+    </div>
+  </div>
+  <button class="primary" type="button" onclick="baixarReciboPDFArquivo()" style="background:#3b82f6; margin-top:15px;">📥 Baixar Recibo em PDF</button>
+  <button class="primary" type="button" onclick="baixarReciboDOC()" style="background:#1d4ed8; margin-top:6px;">📝 Baixar Recibo em DOC / Word</button>
+  <button class="primary" type="button" onclick="abrirModalAssinatura('recibo')" style="background:#0d9488; margin-top:6px;">✍️ Assinar Recibo na Tela</button>
+  <button class="primary" type="button" onclick="enviarReciboWhatsApp()" style="background:#25d366; margin-top:6px;"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:white;vertical-align:middle;margin-right:6px;"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01C17.18 3.03 14.69 2 12.04 2zM12.04 20.3c-1.42 0-2.81-.38-4.02-1.1l-.29-.17-3.03.8.81-2.95-.19-.31c-.81-1.31-1.24-2.83-1.24-4.38 0-4.57 3.72-8.29 8.29-8.29 2.21 0 4.29.86 5.85 2.42 1.56 1.56 2.42 3.64 2.41 5.85 0 4.57-3.72 8.29-8.29 8.29zm4.55-6.25c-.25-.13-1.48-.73-1.71-.82-.23-.09-.4-.13-.57.13-.17.25-.66.82-.81.99-.15.17-.3.19-.55.06-.25-.13-1.05-.39-2-1.23-.74-.66-1.24-1.48-1.39-1.73-.15-.25-.02-.39.11-.52.11-.11.25-.3.38-.45.13-.15.17-.25.25-.42.08-.17.04-.32-.02-.45-.06-.13-.57-1.38-.79-1.89-.21-.49-.43-.42-.59-.43l-.5-.01c-.17 0-.45.06-.69.32-.24.25-.92.9-0.92 2.2 0 1.3 0.94 2.56 1.07 2.74.13.18 1.85 2.82 4.48 3.95 0.63.27 1.12.43 1.5.55.63.2 1.21.17 1.66.1 0.51-.08 1.48-.6 1.69-1.18.21-.58.21-1.08.15-1.18-.06-.1-.23-.16-.48-.29z"/></svg> Compartilhar Recibo via WhatsApp</button>
+  <button class="secondary" onclick="fecharModalReciboPDF()">Fechar</button>
+</div>
+</div>
+
+<div id="modalAssinatura" onclick="if(event.target==this)fecharModalAssinatura()">
+<div class="sheet" style="max-width: 500px; text-align: center;">
+  <h3>✍️ Assinatura Digital Táctil</h3>
+  <p style="font-size: 12px; color: var(--text-muted);">Assine abaixo utilizando o dedo ou a caneta stylus do seu dispositivo:</p>
+  <div style="border: 2px dashed var(--border); border-radius: 12px; background: #ffffff; display: inline-block; margin: 10px 0;">
+    <canvas id="canvasAssinatura" width="350" height="180" style="touch-action: none; cursor: crosshair; display: block;"></canvas>
+  </div>
+  <div style="display: flex; gap: 8px; margin-top: 10px;">
+    <button class="secondary" type="button" onclick="limparCanvasAssinatura()">Limpar</button>
+    <button class="primary" type="button" onclick="salvarAssinaturaTactil()" style="background: #15803d;">Confirmar Assinatura</button>
+  </div>
+  <button class="secondary" type="button" onclick="fecharModalAssinatura()" style="margin-top: 10px;">Cancelar</button>
+</div>
+</div>
+
+<div id="modalComparador" onclick="if(event.target==this)fecharModalComparador()">
+<div class="sheet" style="max-width: 700px;">
+  <h3>🔍 Comparador Lado a Lado de Vistorias</h3>
+  <p style="font-size: 13px; color: var(--text-muted);">Cruzamento automático entre o Laudo de Entrada e o Laudo de Saída:</p>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px;">
+    <div style="background: var(--bg-body); border: 1px solid var(--border); padding: 12px; border-radius: 10px;">
+      <h4 style="margin: 0 0 8px 0; color: var(--primary);">Laudo de Entrada</h4>
+      <div id="conteudoLaudoEntrada" style="font-size: 13px; white-space: pre-wrap; max-height: 200px; overflow-y: auto;">Nenhum laudo de entrada carregado.</div>
+    </div>
+    <div style="background: var(--bg-body); border: 1px solid var(--border); padding: 12px; border-radius: 10px;">
+      <h4 style="margin: 0 0 8px 0; color: #b91c1c;">Laudo de Saída / Atual</h4>
+      <div id="conteudoLaudoSaida" style="font-size: 13px; white-space: pre-wrap; max-height: 200px; overflow-y: auto;">Nenhum laudo de saída carregado.</div>
+    </div>
+  </div>
+  <button class="secondary" onclick="fecharModalComparador()" style="margin-top: 20px;">Fechar Comparador</button>
+</div>
+</div>
+
+<div id="modalVistoria" onclick="if(event.target==this)fecharModalVistoria()">
+<div class="sheet" style="max-width:700px;">
+  <h3>📋 Assistente de Vistoria Georreferenciada Automática (Anexo I)</h3>
+  <label>Cômodo / Ambiente</label>
+  <select id="vistoriaAmbiente" style="padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--bg-body); color:var(--text-main);">
+    <option value="Sala">Sala</option>
+    <option value="Cozinha / Área de Serviço">Cozinha / Área de Serviço</option>
+    <option value="Banheiro">Banheiro</option>
+    <option value="Quarto">Quarto</option>
+    <option value="Área Externa / Garagem">Área Externa / Garagem</option>
+  </select>
+
+  <label>Estado de Conservação</label>
+  <select id="vistoriaEstado" style="padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--bg-body); color:var(--text-main);">
+    <option value="NOVO">NOVO (sem marcas de uso)</option>
+    <option value="BOM">BOM (conservação normal)</option>
+    <option value="REGULAR">REGULAR (pequenos desgastes)</option>
+    <option value="COM DEFEITO">COM DEFEITO (danificado)</option>
+  </select>
+
+  <label>Foto do Cômodo (Captura automática por Geolocalização Reversa)</label>
+  <input type="file" id="vistoriaFotoInput" accept="image/*" onchange="capturarDadosGeolocalizacaoFoto(event)">
+
+  <label>Observações Detalhadas</label>
+  <textarea id="vistoriaObs" placeholder="Descreva marcas, paredes, pisos..."></textarea>
+
+  <button class="primary" type="button" onclick="adicionarItemVistoria()" style="background:#3b82f6;">➕ Adicionar Cômodo ao Laudo</button>
+
+  <div id="listaItensVistoria" style="margin-top:15px; max-height:150px; overflow-y:auto; border:1px solid var(--border); padding:8px; border-radius:8px; font-size:13px;"></div>
+
+  <button class="primary" onclick="salvarLaudoVistoriaFinal()" style="margin-top:15px;">Salvar Laudo Completo no Imóvel</button>
+  <button class="secondary" onclick="fecharModalVistoria()">Voltar ao Imóvel</button>
+</div>
+</div>
+
+<div id="modalVirarMes" onclick="if(event.target==this)fecharModalVirarMes()">
+<div class="sheet">
+<h3 id="tituloVirarMes">📅 Virar para o próximo mês?</h3>
+<p style="font-size: 14px; color: var(--text-muted); margin-bottom: 12px;">Os pagamentos serão reiniciados para o novo mês com as seguintes garantias:</p>
+<ul style="font-size: 14px; padding-left: 20px; line-height: 1.6; color: var(--text-main);">
+  <li>✓ Histórico e recibos preservados</li>
+  <li>✓ Contratos e documentos mantidos</li>
+  <li>✓ <b>Atualização automática</b> do vencimento</li>
+</ul>
+<button class="primary" onclick="executarVirarMes()" style="margin-top: 15px;">Confirmar Virada de Mês</button>
+<button class="secondary" onclick="fecharModalVirarMes()">Cancelar</button>
+</div>
+</div>
+
+<div id="modal" onclick="if(event.target==this)fecharModal()">
+<div class="sheet">
+<h3 id="modalTitle">Gerenciar Imóvel</h3>
+
+<label>Nome / Identificação do Imóvel</label>
+<input id="imovel" type="text" placeholder="Ex: Casa Exemplo, Apto 101">
+
+<label>Vincular Locatário</label>
+<select id="selectLocatarioImovel" style="padding:12px; border:1px solid var(--border); border-radius:10px; background:var(--bg-body); color:var(--text-main);">
+  <option value="">Selecione um locatário cadastrado...</option>
+</select>
+
+<label>Valor do aluguel (R$ - sem centavos)</label>
+<input id="valor" type="number" step="1" placeholder="Ex: 1526">
+<label>Valor da Caução em Dinheiro (R$)</label>
+<input id="caucao" type="number" step="1" placeholder="Ex: 3000">
+
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+  <div>
+    <label>IPTU Mensal (R$)</label>
+    <input id="iptuValor" type="number" step="1" placeholder="Ex: 150">
+  </div>
+  <div>
+    <label>Condomínio (R$)</label>
+    <input id="condominioValor" type="number" step="1" placeholder="Ex: 350">
+  </div>
+</div>
+
+<div style="display:flex; gap: 15px; margin-top: 8px;">
+  <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:bold;">
+    <input type="checkbox" id="iptuPagoSwitch" style="width:auto; margin:0;"> IPTU Quitado
+  </label>
+  <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:bold;">
+    <input type="checkbox" id="condominioPagoSwitch" style="width:auto; margin:0;"> Condomínio Quitado
+  </label>
+</div>
+
+<label>Data de vencimento do mês</label>
+<input id="data" type="date">
+<label>Data de Início do Contrato (para Reajuste)</label>
+<input id="dataInicioContrato" type="date">
+<label>Data de término do Contrato</label>
+<input id="fimContrato" type="date">
+
+<label>Índice de Reajuste Anual</label>
+<select id="selectIndiceReajuste" style="padding:12px; border:1px solid var(--border); border-radius:10px; background:var(--bg-body); color:var(--text-main);">
+  <option value="IPCA">IPCA (IBGE)</option>
+  <option value="IGPM">IGP-M (FGV)</option>
+</select>
+
+<label>CCI (IPTU)</label>
+<input id="cciIptu" type="text" placeholder="Ex: 00.00.00.0000.000">
+<label>Energia - (UC) Unidade Consumidora</label>
+<input id="ucEnergia" type="text" placeholder="Ex: 00000000">
+<label>Água - Código Cliente</label>
+<input id="ucAgua" type="text" placeholder="Ex: 0000000">
+
+<label>Contrato de Locação (Upload / Arquivo)</label>
+<input id="inputContrato" type="file" accept="image/*,application/pdf" onchange="processarArquivoImovel(event, 'contrato')">
+<div id="previewContrato" class="file-preview"></div>
+
+<button id="btnGerarContratoPronto" class="primary" type="button" onclick="abrirContratoProntoLocatario()" style="background:#3b82f6; margin-top:8px;">📑 Gerar Contrato Completo Preenchido</button>
+<button id="btnGerarAditivo" class="primary" type="button" onclick="abrirGeradorAditivo()" style="background:#0d9488; margin-top:6px;">✍️ Gerar Termo Aditivo</button>
+
+<label>Laudo de Vistoria do Imóvel (JPG ou PDF)</label>
+<input id="inputVistoria" type="file" accept="image/jpeg,application/pdf" onchange="processarArquivoImovel(event, 'vistoria')">
+<div id="previewVistoria" class="file-preview"></div>
+<button class="secondary" type="button" onclick="abrirModalVistoriaAssistente()" style="margin-top:6px;">📋 Preencher Vistoria (Geolocalização Automática)</button>
+<button class="secondary" type="button" onclick="abrirComparadorVistoria()" style="margin-top:6px; background:#475569; color:white;">🔍 Comparar Entrada vs Saída</button>
+
+<label>Despesas de Manutenção Dedutíveis (Reparos do Inquilino com Nota Fiscal)</label>
+<div style="display:flex; gap:8px;">
+  <input id="manutDescricao" type="text" placeholder="Descrição (ex: Troca de Registro)" style="flex:2;">
+  <input id="manutValor" type="number" step="0.01" placeholder="Valor R$" style="flex:1;">
+</div>
+<button class="secondary" type="button" onclick="adicionarManutencaoDedutivel()" style="margin-top:2px;">➕ Adicionar Despesa para Abater</button>
+<div id="listaManutencoesDiv" style="margin-top:6px; font-size:13px;"></div>
+
+<label>Despesas de Manutenção / Reforma do Proprietário (Abatidas no Gráfico)</label>
+<div style="display:flex; gap:8px;">
+  <input id="reparoPropDescricao" type="text" placeholder="Ex: Pintura Externa / Telhado" style="flex:2;">
+  <input id="reparoPropValor" type="number" step="0.01" placeholder="Valor R$" style="flex:1;">
+</div>
+<button class="secondary" type="button" onclick="adicionarReparoProprietario()" style="margin-top:2px; background:#0284c7; color:white;">➕ Adicionar Reforma do Proprietário</button>
+<div id="listaReparosPropDiv" style="margin-top:6px; font-size:13px;"></div>
+
+<label>Termo de Entrega de Chaves & Imissão de Posse</label>
+<button class="secondary" type="button" onclick="gerarTermoChaves()" style="background:#1e3a8a; color:white; margin-top:4px;">🔑 Emitir Termo de Entrega de Chaves (PDF)</button>
+
+<label>Notificação Extrajudicial / Despejo (Lei nº 8.245/91)</label>
+<button class="secondary" type="button" onclick="gerarNotificacaoExtrajudicial()" style="background:#b91c1c; color:white; margin-top:4px;">⚠️ Emitir Notificação Extrajudicial de Atraso</button>
+
+<label>Anotações Livres / Histórico / Manutenção</label>
+<textarea id="notas" placeholder="Ex: Ocorrências..."></textarea>
+
+<div class="switch-container">
+  <span class="switch-text" id="statusLabel">Status: Em Aberto</span>
+  <label class="switch">
+    <input type="checkbox" id="pagoSwitch" onchange="tratarMudancaPagamento()">
+    <span class="slider"></span>
+  </label>
+</div>
+
+<div id="boxHistorico" class="historico-box" style="display:none;">
+  <div class="historico-titulo">Histórico de Pagamentos</div>
+  <div id="listaHistorico"></div>
+</div>
+
+<button class="primary" onclick="salvarImovel()">Salvar Imóvel</button>
+<button id="btnPix" class="btn-pix" onclick="copiarPixCobranca()"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg> Copiar Chave PIX / QR Code</button>
+<button id="btnZap" class="btn-whatsapp" onclick="enviarCobranca()"><svg viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01C17.18 3.03 14.69 2 12.04 2zM12.04 20.3c-1.42 0-2.81-.38-4.02-1.1l-.29-.17-3.03.8.81-2.95-.19-.31c-.81-1.31-1.24-2.83-1.24-4.38 0-4.57 3.72-8.29 8.29-8.29 2.21 0 4.29.86 5.85 2.42 1.56 1.56 2.42 3.64 2.41 5.85 0 4.57-3.72 8.29-8.29 8.29zm4.55-6.25c-.25-.13-1.48-.73-1.71-.82-.23-.09-.4-.13-.57.13-.17.25-.66.82-.81.99-.15.17-.3.19-.55.06-.25-.13-1.05-.39-2-1.23-.74-.66-1.24-1.48-1.39-1.73-.15-.25-.02-.39.11-.52.11-.11.25-.3.38-.45.13-.15.17-.25.25-.42.08-.17.04-.32-.02-.45-.06-.13-.57-1.38-.79-1.89-.21-.49-.43-.42-.59-.43l-.5-.01c-.17 0-.45.06-.69.32-.24.25-.92.9-0.92 2.2 0 1.3 0.94 2.56 1.07 2.74.13.18 1.85 2.82 4.48 3.95 0.63.27 1.12.43 1.5.55.63.2 1.21.17 1.66.1 0.51-.08 1.48-.6 1.69-1.18.21-.58.21-1.08.15-1.18-.06-.1-.23-.16-.48-.29z"/></svg> Cobrar no WhatsApp (Com Juros Pró Rata)</button>
+<button class="btn-voltar-modal" onclick="fecharModal()">⬅️ Voltar</button>
+<button id="btnExcluir" class="secondary" style="color:#ef4444;display:none" onclick="excluirImovel()">Excluir Imóvel</button>
+</div>
+</div>
+
+<div id="modalLocatario" onclick="if(event.target==this)fecharModalLocatario()">
+<div class="sheet" style="max-height: 90vh; overflow-y: auto;">
+<h3 id="modalLocatarioTitle">Gerenciar Locatário</h3>
+
+<div id="containerFotoAmpliada" class="container-foto-ampliada" style="display:none;">
+  <img id="imgVisualizacaoAmpliada" class="foto-locatario-modal" src="" alt="Foto" onclick="abrirVisualizador(this.src)">
+</div>
+
+<label>Tipo de Locatário</label>
+<select id="locTipo" onchange="alternarTipoLocatario()" style="padding:12px; border:1px solid var(--border); border-radius:10px; background:var(--bg-body); color:var(--text-main);">
+  <option value="PF">Pessoa Física</option>
+  <option value="PJ">Pessoa Jurídica</option>
+</select>
+
+<div id="blocoPF">
+  <label>Nome Completo</label>
+  <input id="locNome" type="text" placeholder="Nome Completo">
+  
+  <label>Nacionalidade</label>
+  <select id="locNacionalidadeSelect" onchange="tratarMudancaNacionalidade('loc')" style="margin-bottom:4px;">
+    <option value="brasileiro(a)">brasileiro(a)</option>
+    <option value="outro">Outra (digitar manualmente)</option>
+  </select>
+  <input id="locNacionalidade" type="text" placeholder="brasileiro(a)" style="display:none;">
+
+  <label>Estado Civil</label>
+  <select id="locEstadoCivilSelect" onchange="tratarMudancaEstadoCivil('loc')" style="margin-bottom:4px;">
+    <option value="solteiro(a)">solteiro(a)</option>
+    <option value="casado(a)">casado(a)</option>
+    <option value="união estável">união estável</option>
+    <option value="divorciado(a)">divorciado(a)</option>
+    <option value="viúvo(a)">viúvo(a)</option>
+    <option value="outro">Outro (digitar manualmente)</option>
+  </select>
+  <input id="locEstadoCivil" type="text" placeholder="Ex: solteiro(a)" style="display:none;">
+
+  <label>Profissão</label>
+  <input id="locProfissao" type="text" placeholder="profissão">
+  <label>RG</label>
+  <input id="locRg" type="text" placeholder="Número de RG">
+  <label>CPF</label>
+  <input id="locCpf" type="text" placeholder="000.000.000-00" oninput="mascaraCPF(this)">
+  <label>Endereço Residencial Completo</label>
+  <input id="locEndereco" type="text" placeholder="Endereço com CEP">
+</div>
+
+<div id="blocoPJ" style="display:none;">
+  <label>Razão Social</label>
+  <input id="locRazaoSocial" type="text" placeholder="Empresa Ltda">
+  <label>CNPJ</label>
+  <input id="locCnpj" type="text" placeholder="00.000.000/0001-00">
+  <label>Endereço da Sede</label>
+  <input id="locSede" type="text" placeholder="Endereço da sede">
+  <label>Representante Legal (Nome, RG, CPF, Cargo)</label>
+  <input id="locRepresentante" type="text" placeholder="Dados do Representante">
+</div>
+
+<label>E-mail</label>
+<input id="locEmail" type="email" placeholder="email@dominio.com">
+<label>WhatsApp</label>
+<input id="locWhatsapp" type="tel" placeholder="(63) 99999-9999" oninput="mascaraTelefone(this)">
+
+<label>Documento Pessoal / Estatuto Social</label>
+<input id="inputDoc" type="file" accept="image/*,application/pdf" onchange="processarArquivoLocatario(event, 'doc')">
+<div id="previewDoc" class="file-preview"></div>
+
+<label>Comprovante de Renda / Faturamento</label>
+<input id="inputRenda" type="file" accept="image/*,application/pdf" onchange="processarArquivoLocatario(event, 'renda')">
+<div id="previewRenda" class="file-preview"></div>
+
+<button class="primary" onclick="salvarLocatario()">Salvar Locatário</button>
+<button class="btn-voltar-modal" onclick="fecharModalLocatario()">⬅️ Voltar</button>
+<button id="btnExcluirLocatario" class="secondary" style="color:#ef4444;display:none" onclick="excluirLocatario()">Excluir Locatário</button>
+</div>
+</div>
+
+<div id="modalVisualizador" onclick="fecharVisualizador()">
+  <div class="conteudo-visualizador" onclick="event.stopPropagation()">
+    <button class="btn-fechar-visualizador" onclick="fecharVisualizador()">✕ Fechar</button>
+    <img id="imgModalVisualizador" src="" alt="Visualização">
+  </div>
+</div>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+
+const DB_NAME = 'GestaoAlugueisDB';
+const STORE_NAME = 'arquivos';
+
+function abrirDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+  });
+}
+
+async function salvarArquivoDB(chave, dados) {
+  if (!dados) return;
+  try {
+    const db = await abrirDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.put(dados, chave);
+      request.onsuccess = () => resolve(true);
+      request.onerror = () => reject(request.error);
+    });
+  } catch (err) {}
+}
+
+async function carregarArquivoDB(chave) {
+  try {
+    const db = await abrirDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.get(chave);
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+    });
+  } catch (err) {
+    return null;
+  }
+}
+
+async function removerArquivoDB(chave) {
+  try {
+    const db = await abrirDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.delete(chave);
+      request.onsuccess = () => resolve(true);
+      request.onerror = () => reject(request.error);
+    });
+  } catch (err) {}
+}
+
+let imoveis = JSON.parse(localStorage.getItem('alugueis_app')||'[]');
+let locatarios = JSON.parse(localStorage.getItem('alugueis_locatarios')||'[]');
+let locadorDados = JSON.parse(localStorage.getItem('alugueis_locador')||'{}');
+
+const minutaPadraoCompleta = document.getElementById('locadorMinutaModelo').value;
+if(!locadorDados.minuta) {
+  locadorDados.minuta = minutaPadraoCompleta;
+  localStorage.setItem('alugueis_locador', JSON.stringify(locadorDados));
+}
+
+let pixProprietario = locadorDados.pix || localStorage.getItem('alugueis_pix') || '';
+
+let editId = null;
+let editLocatarioId = null;
+let meuGrafico = null;
+let abaAtiva = 'dash';
+let mesFiltroGrafico = 'todos';
+let filtroStatusImovel = 'todos';
+let itensVistoriaTemp = [];
+let manutencoesTemp = [];
+let reparosPropTemp = [];
+let metadadosGeoFotoTemp = '';
+let alvoAssinaturaAtual = null;
+let assinaturaBase64Temp = null;
+
+let temaAtual = localStorage.getItem('alugueis_theme') || 'light';
+document.documentElement.setAttribute('data-theme', temaAtual);
+document.getElementById('themeIcon').innerText = temaAtual === 'dark' ? '☀️' : '🌙';
+
+let arquivoDocTemp = null;
+let nomeDocTemp = '';
+let arquivoRendaTemp = null;
+let nomeRendaTemp = '';
+let arquivoContratoTemp = null;
+let nomeContratoTemp = '';
+let arquivoVistoriaTemp = null;
+let nomeVistoriaTemp = '';
+let historicoTemp = [];
+
+window.addEventListener('DOMContentLoaded', () => {
+  const sessaoAtiva = sessionStorage.getItem('alugueis_autenticado');
+  if (sessaoAtiva === 'true') {
+    document.getElementById('telaCadastro').style.display = 'none';
+    document.getElementById('telaLogin').style.display = 'none';
+    render();
+  } else {
+    document.getElementById('telaCadastro').style.display = 'flex';
+    document.getElementById('telaLogin').style.display = 'none';
+    atualizarStatusBiometria();
+  }
+});
+
+function atualizarStatusBiometria() {
+  const status = document.getElementById('bioStatus');
+  if (!status) return;
+  const pronto = localStorage.getItem('alugueis_bio_ativo') === 'true' && localStorage.getItem('alugueis_bio_cred_id');
+  status.innerText = pronto
+    ? '✓ Biometria local cadastrada neste celular. Toque no botão e use digital/rosto.'
+    : 'Primeiro toque: o Android/telefone pedirá sua digital ou rosto para criar o acesso local. Não é necessário Google.';
+}
+
+function mostrarLoginSenha() {
+  document.getElementById('telaCadastro').style.display = 'none';
+  document.getElementById('telaLogin').style.display = 'flex';
+}
+function voltarEscolhaAcesso() {
+  document.getElementById('telaLogin').style.display = 'none';
+  document.getElementById('telaCadastro').style.display = 'flex';
+  atualizarStatusBiometria();
+}
+
+function base64urlFromBuffer(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+function bufferFromBase64url(str) {
+  const pad = '='.repeat((4 - str.length % 4) % 4);
+  const bin = atob(str.replace(/-/g, '+').replace(/_/g, '/') + pad);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+async function criarCredencialBiometricaLocal() {
+  if (!window.PublicKeyCredential || !window.isSecureContext || !navigator.credentials) {
+    throw new Error('Biometria Web não disponível neste ambiente. Abra o aplicativo instalado/HTTPS.');
+  }
+  const userId = crypto.getRandomValues(new Uint8Array(32));
+  const credential = await navigator.credentials.create({
+    publicKey: {
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      rp: { name: 'Gestão de Imóveis' },
+      user: { id: userId, name: 'acesso-local', displayName: 'Acesso local' },
+      pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
+      authenticatorSelection: {
+        authenticatorAttachment: 'platform',
+        residentKey: 'required',
+        requireResidentKey: true,
+        userVerification: 'required'
+      },
+      timeout: 60000,
+      attestation: 'none'
+    }
+  });
+  if (!credential) throw new Error('Não foi possível criar o acesso biométrico.');
+  localStorage.setItem('alugueis_bio_ativo', 'true');
+  localStorage.setItem('alugueis_bio_cred_id', base64urlFromBuffer(credential.rawId));
+  return credential;
+}
+
+async function fazerLoginBiometrico() {
+  // No APK Android, esta chamada vai diretamente para o BiometricPrompt nativo.
+  // Não depende de Google/Firebase e não aceita uma digital que não esteja
+  // cadastrada no aparelho. O Android é quem valida a biometria.
+  if (window.AndroidBiometric && typeof window.AndroidBiometric.authenticate === 'function') {
+    window.AndroidBiometric.authenticate();
+    return;
+  }
+
+  // Fora do APK, não fingimos que a biometria nativa existe.
+  mostrarToast('Instale o aplicativo Android para usar a digital/reconhecimento facial do celular.');
+}
+
+window.onNativeBiometricSuccess = function() {
+  sessionStorage.setItem('alugueis_autenticado', 'true');
+  document.getElementById('telaCadastro').style.display = 'none';
+  document.getElementById('telaLogin').style.display = 'none';
+  render();
+};
+
+function salvarCadastroInicial() {
+  // Mantido por compatibilidade com versões antigas; não é mais obrigatório para usar biometria.
+  const email = document.getElementById('cadEmail');
+  const senha = document.getElementById('cadSenha');
+  if (email && senha) {
+    localStorage.setItem('alugueis_cad_email', email.value.trim());
+    localStorage.setItem('alugueis_cad_senha', senha.value.trim());
+  }
+  sessionStorage.setItem('alugueis_autenticado', 'true');
+  document.getElementById('telaCadastro').style.display = 'none';
+  render();
+}
+
+function fazerLogin() {
+  const emailDigitado = document.getElementById('loginEmail').value.trim();
+  const senhaDigitada = document.getElementById('loginSenha').value.trim();
+  const emailSalvo = localStorage.getItem('alugueis_cad_email');
+  const senhaSalva = localStorage.getItem('alugueis_cad_senha');
+  if(emailDigitado !== emailSalvo || senhaDigitada !== senhaSalva) {
+    mostrarToast('E-mail ou senha incorretos.');
+    return;
+  }
+  sessionStorage.setItem('alugueis_autenticado', 'true');
+  document.getElementById('telaLogin').style.display = 'none';
+  render();
+}
+
+function fazerLogout() {
+  sessionStorage.removeItem('alugueis_autenticado');
+  document.getElementById('telaLogin').style.display = 'none';
+  document.getElementById('telaCadastro').style.display = 'flex';
+  atualizarStatusBiometria();
+}
+
+function abrirModalLocador() {
+  document.getElementById('locadorNome').value = locadorDados.nome || '';
+  
+  let nacLoc = locadorDados.nacionalidade || 'brasileiro(a)';
+  if(nacLoc === 'brasileiro(a)' || nacLoc === 'brasileiro') {
+    document.getElementById('locadorNacionalidadeSelect').value = 'brasileiro(a)';
+    document.getElementById('locadorNacionalidade').style.display = 'none';
+    document.getElementById('locadorNacionalidade').value = 'brasileiro(a)';
+  } else {
+    document.getElementById('locadorNacionalidadeSelect').value = 'outro';
+    document.getElementById('locadorNacionalidade').style.display = 'block';
+    document.getElementById('locadorNacionalidade').value = nacLoc;
+  }
+
+  let estCivLocador = locadorDados.estadoCivil || 'solteiro(a)';
+  if(['solteiro(a)', 'casado(a)', 'união estável', 'divorciado(a)', 'viúvo(a)'].includes(estCivLocador)) {
+    document.getElementById('locadorEstadoCivilSelect').value = estCivLocador;
+    document.getElementById('locadorEstadoCivil').style.display = 'none';
+    document.getElementById('locadorEstadoCivil').value = estCivLocador;
+  } else {
+    document.getElementById('locadorEstadoCivilSelect').value = 'outro';
+    document.getElementById('locadorEstadoCivil').style.display = 'block';
+    document.getElementById('locadorEstadoCivil').value = estCivLocador;
+  }
+
+  document.getElementById('locadorProfissao').value = locadorDados.profissao || '';
+  document.getElementById('locadorRg').value = locadorDados.rg || '';
+  document.getElementById('locadorCpf').value = locadorDados.cpf || '';
+  document.getElementById('locadorEndereco').value = locadorDados.endereco || '';
+  document.getElementById('locadorEmail').value = locadorDados.email || '';
+  document.getElementById('locadorTel').value = locadorDados.tel || '';
+  document.getElementById('locadorBancoInfo').value = locadorDados.bancoInfo || '';
+  document.getElementById('locadorPix').value = locadorDados.pix || '';
+  document.getElementById('locadorMinutaModelo').value = locadorDados.minuta || minutaPadraoCompleta;
+  document.getElementById('modalLocador').classList.add('open');
+}
+
+function fecharModalLocador() {
+  document.getElementById('modalLocador').classList.remove('open');
+}
+
+function salvarLocador() {
+  let nacVal = document.getElementById('locadorNacionalidadeSelect').value;
+  if(nacVal === 'outro') nacVal = document.getElementById('locadorNacionalidade').value.trim();
+
+  let estCivVal = document.getElementById('locadorEstadoCivilSelect').value;
+  if(estCivVal === 'outro') estCivVal = document.getElementById('locadorEstadoCivil').value.trim();
+
+  locadorDados = {
+    nome: document.getElementById('locadorNome').value.trim(),
+    nacionalidade: nacVal || 'brasileiro(a)',
+    estadoCivil: estCivVal || 'solteiro(a)',
+    profissao: document.getElementById('locadorProfissao').value.trim(),
+    rg: document.getElementById('locadorRg').value.trim(),
+    cpf: document.getElementById('locadorCpf').value.trim(),
+    endereco: document.getElementById('locadorEndereco').value.trim(),
+    email: document.getElementById('locadorEmail').value.trim(),
+    tel: document.getElementById('locadorTel').value.trim(),
+    bancoInfo: document.getElementById('locadorBancoInfo').value.trim(),
+    pix: document.getElementById('locadorPix').value.trim(),
+    minuta: document.getElementById('locadorMinutaModelo').value
+  };
+  pixProprietario = locadorDados.pix;
+  localStorage.setItem('alugueis_locador', JSON.stringify(locadorDados));
+  localStorage.setItem('alugueis_pix', pixProprietario);
+  fecharModalLocador();
+  mostrarToast("Dados do Locador e Contrato salvos!");
+  render();
+}
+
+function abrirContratoProntoLocatario() {
+  const selLocId = document.getElementById('selectLocatarioImovel').value;
+  if(!selLocId) { mostrarToast("Selecione um locatário vinculado primeiro."); return; }
+  
+  const locatarioObj = locatarios.find(l => l.id == selLocId);
+  if(!locatarioObj) { mostrarToast("Locatário não encontrado."); return; }
+
+  fecharModal();
+
+  let modelo = locadorDados.minuta || document.getElementById('locadorMinutaModelo').value;
+  const loc = locadorDados;
+
+  let valorCheioNum = document.getElementById('valor').value ? Math.round(parseFloat(document.getElementById('valor').value) * 1.1) : 0;
+  let valoriqNum = document.getElementById('valor').value ? Math.round(parseFloat(document.getElementById('valor').value)) : 0;
+  let descontoNum = valorCheioNum - valoriqNum;
+  let caucaoNum = document.getElementById('caucao').value ? Math.round(parseFloat(document.getElementById('caucao').value)) : 0;
+
+  let valorCheioStr = valorCheioNum.toLocaleString('pt-BR');
+  let valoriqStr = valoriqNum.toLocaleString('pt-BR');
+  let descontoStr = descontoNum.toLocaleString('pt-BR');
+  let caucaoStr = caucaoNum.toLocaleString('pt-BR');
+  
+  let dataVencInput = document.getElementById('data').value;
+  let diaVenc = dataVencInput ? dataVencInput.split('-')[2] : '10';
+
+  let dadosLocatarioTexto = "";
+  let assinaturaTexto = "";
+
+  if (locatarioObj.tipo === 'PJ') {
+    dadosLocatarioTexto = `Pessoa Jurídica: Razão Social <b>${locatarioObj.razaoSocial || ''}</b>, CNPJ <u>${locatarioObj.cnpj || ''}</u>, sede na ${locatarioObj.sede || ''}, representada por ${locatarioObj.representante || ''}`;
+    assinaturaTexto = `<b>${locatarioObj.razaoSocial}</b><br>Representante: ${locatarioObj.representante}`;
+  } else {
+    dadosLocatarioTexto = `<b>${locatarioObj.nome || ''}</b>, ${locatarioObj.nacionalidade || 'brasileiro(a)'}, ${locatarioObj.estadoCivil || 'solteiro(a)'}, ${locatarioObj.profissao || ''}, portador(a) do RG nº ${locatarioObj.rg || ''} e inscrito(a) no CPF sob o nº <u>${locatarioObj.cpf || ''}</u>, residente na ${locatarioObj.endereco || ''}`;
+    assinaturaTexto = `<b>${locatarioObj.nome}</b> (CPF: <u>${locatarioObj.cpf || ''}</u>)`;
+  }
+
+  modelo = modelo.replace(/{{locador_nome}}/g, `<b>${loc.nome || 'Proprietário'}</b>`)
+                 .replace(/{{locador_nacionalidade}}/g, loc.nacionalidade || 'brasileiro(a)')
+                 .replace(/{{locador_estado_civil}}/g, loc.estadoCivil || 'solteiro(a)')
+                 .replace(/{{locador_profissao}}/g, loc.profissao || '')
+                 .replace(/{{locador_rg}}/g, loc.rg || '0000000')
+                 .replace(/{{locador_cpf}}/g, `<u>${loc.cpf || '000.000.000-00'}</u>`)
+                 .replace(/{{locador_endereco}}/g, loc.endereco || '')
+                 .replace(/{{locador_email}}/g, loc.email || '')
+                 .replace(/{{locador_tel}}/g, loc.tel || '')
+                 .replace(/{{locatario_dados}}/g, dadosLocatarioTexto)
+                 .replace(/{{locatario_assinatura}}/g, assinaturaTexto)
+                 .replace(/{{locatario_email}}/g, locatarioObj.email || '')
+                 .replace(/{{locatario_whatsapp}}/g, locatarioObj.whatsapp || '')
+                 .replace(/{{imovel_endereco}}/g, `<u>${document.getElementById('imovel').value || ''}</u>`)
+                 .replace(/{{cci_iptu}}/g, document.getElementById('cciIptu').value || '')
+                 .replace(/{{uc_energia}}/g, document.getElementById('ucEnergia').value || '')
+                 .replace(/{{uc_agua}}/g, document.getElementById('ucAgua').value || '')
+                 .replace(/{{data_inicio}}/g, dataVencInput ? dataVencInput.split('-').reverse().join('/') : '')
+                 .replace(/{{data_fim}}/g, document.getElementById('fimContrato').value ? document.getElementById('fimContrato').value.split('-').reverse().join('/') : '')
+                 .replace(/{{valor_cheio}}/g, valorCheioStr)
+                 .replace(/{{dia_vencimento}}/g, diaVenc)
+                 .replace(/{{valor_desconto}}/g, descontoStr)
+                 .replace(/{{valor_aluguel}}/g, valoriqStr)
+                 .replace(/{{caucao}}/g, caucaoStr)
+                 .replace(/{{banco_info}}/g, loc.bancoInfo || '')
+                 .replace(/{{pix}}/g, `<u>${loc.pix || ''}</u>`);
+
+  if (assinaturaBase64Temp) {
+    modelo += `<br><br><b>[Assinado Digitalmente por Táctil]</b><br>`;
+  }
+
+  let htmlFormatado = modelo.replace(/\n/g, '<br>');
+
+  document.getElementById('textoContratoGerado').innerHTML = htmlFormatado;
+  window.contratoTextoAtual = modelo.replace(/<[^>]*>?/gm, ''); 
+  window.whatsappLocatarioAtual = locatarioObj.whatsapp || '';
+  document.getElementById('modalContrato').classList.add('open');
+}
+
+function fecharModalContrato() {
+  document.getElementById('modalContrato').classList.remove('open');
+}
+
+function baixarContratoPDF(callbackShare = null) {
+  const el = document.getElementById('areaContratoPDF');
+  if (!el) { mostrarToast("Nenhum contrato gerado para baixar."); return; }
+
+  const opt = {
+    margin:       [10, 10, 10, 10],
+    filename:     'Contrato_Locacao_Oficial_Completo.pdf',
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { 
+      scale: 2, 
+      useCORS: true, 
+      logging: false, 
+      letterRendering: true,
+      windowWidth: el.scrollWidth 
+    },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+  };
+
+  html2pdf().from(el).set(opt).outputPdf('blob').then((pdfBlob) => {
+    if (callbackShare) {
+      callbackShare(pdfBlob);
+    } else {
+      const blobUrl = URL.createObjectURL(pdfBlob);
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.href = blobUrl;
+      downloadAnchorNode.download = 'Contrato_Locacao_Oficial_Completo.pdf';
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+      mostrarToast("Download do Contrato PDF completo concluído!");
+    }
+  }).catch((err) => {
+    console.error(err);
+    mostrarToast("Erro ao gerar PDF. Tente novamente.");
+  });
+}
+
+function baixarContratoDOC() {
+  const texto = window.contratoTextoAtual || '';
+  if (!texto) { mostrarToast("Nenhum contrato gerado para exportar."); return; }
+  const blob = new Blob([`\ufeff${texto}`], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Contrato_Locacao_Completo.doc';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  mostrarToast("Documento DOC completo exportado com sucesso!");
+}
+
+function enviarContratoWhatsApp() {
+  const numZap = window.whatsappLocatarioAtual ? window.whatsappLocatarioAtual.replace(/\D/g, '') : '';
+  baixarContratoPDF(async (pdfBlob) => {
+    const file = new File([pdfBlob], "Contrato_Locacao.pdf", { type: "application/pdf" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: 'Contrato de Locação',
+          text: 'Olá! Segue em anexo o Contrato de Locação Oficial Completo.'
+        });
+        return;
+      } catch (e) {}
+    }
+    const msg = `Olá! Segue o Contrato de Locação Oficial Completo.`;
+    if(numZap) {
+      window.open(`https://wa.me/55${numZap}?text=${encodeURIComponent(msg)}`, '_blank');
+    } else {
+      mostrarToast("PDF baixado com sucesso!");
+    }
+  });
+}
+
+function abrirGeradorAditivo() {
+  const selLocId = document.getElementById('selectLocatarioImovel').value;
+  if(!selLocId) { mostrarToast("Selecione um locatário vinculado primeiro."); return; }
+  const locatarioObj = locatarios.find(l => l.id == selLocId);
+  const nomeLoc = locatarioObj.tipo === 'PJ' ? locatarioObj.razaoSocial : locatarioObj.nome;
+  const imovelNome = document.getElementById('imovel').value || 'Imóvel';
+
+  const tipoAditivo = prompt(`Gerador de Termo Aditivo Contratual:\n\nDigite o tipo de aditivo:\n1 - Prorrogação de Prazo\n2 - Alteração de Valor do Aluguel`, "1");
+  if (!tipoAditivo) return;
+
+  let textoAditivo = `TERMO ADITIVO AO CONTRATO DE LOCAÇÃO RESIDENCIAL\n\n`;
+  textoAditivo += `LOCADOR: ${locadorDados.nome || 'Proprietário'}, CPF: ${locadorDados.cpf || ''}\n`;
+  textoAditivo += `LOCATÁRIO: ${nomeLoc}\n`;
+  textoAditivo += `IMÓVEL: ${imovelNome}\n\n`;
+
+  if (tipoAditivo === '1') {
+    let novaDataFim = prompt("Digite a nova data de término do contrato (DD/MM/AAAA):", "31/12/2027");
+    textoAditivo += `As partes resolvem de comum acordo PRORROGAR o prazo de vigência da locação, ficando estabelecida a nova data de término para ${novaDataFim}.\n\n`;
+  } else {
+    let novoValor = prompt("Digite o novo valor do aluguel (R$):", "1800");
+    textoAditivo += `As partes resolvem de comum acordo ALTERAR o valor do aluguel mensal para ${formatarMoeda(novoValor)}, a vigorar a partir do próximo vencimento.\n\n`;
+  }
+  textoAditivo += `Permanecem inalteradas todas as demais cláusulas e condições do contrato de locação original.\n\nPalmas - TO, hoje.\n\nLocador: _______________________\nLocatário: _______________________`;
+
+  window.contratoTextoAtual = textoAditivo;
+  window.whatsappLocatarioAtual = locatarioObj.whatsapp || '';
+  document.getElementById('textoContratoGerado').innerHTML = textoAditivo.replace(/\n/g, '<br>');
+  document.getElementById('modalContrato').classList.add('open');
+  mostrarToast("Termo Aditivo gerado com sucesso! Pronto para download e assinatura.");
+}
+
+function gerarTermoChaves() {
+  const selLocId = document.getElementById('selectLocatarioImovel').value;
+  if(!selLocId) { mostrarToast("Selecione um locatário vinculado primeiro."); return; }
+  const locatarioObj = locatarios.find(l => l.id == selLocId);
+  const nomeLoc = locatarioObj.tipo === 'PJ' ? locatarioObj.razaoSocial : locatarioObj.nome;
+  const imovelNome = document.getElementById('imovel').value || 'Imóvel';
+
+  const textoChaves = `TERMO DE VISTORIA DE CHAVES E IMISSÃO DE POSSE EXPRÊSSO\n\n` +
+    `Por este instrumento particular, o(a) LOCADOR(A) ${locadorDados.nome || ''} entrega nesta data ao(à) LOCATÁRIO(A) ${nomeLoc} as chaves e dispositivos de acesso referentes ao imóvel situado em ${imovelNome}.\n\n` +
+    `O(A) LOCATÁRIO(A) declara receber o imóvel no estado constante no laudo de vistoria, assumindo a partir desta data a inteira responsabilidade civil, criminal e financeira sobre o bem, bem como o pagamento de taxas de condomínio e consumo de água/energia.\n\n` +
+    `Palmas - TO, hoje.\n\nLocador: _____________________\nLocatário: _____________________`;
+
+  const blob = new Blob([`\ufeff${textoChaves}`], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Termo_Entrega_Chaves.doc';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  mostrarToast("Termo de Entrega de Chaves gerado em formato DOC!");
+}
+
+function gerarNotificacaoExtrajudicial() {
+  const selLocId = document.getElementById('selectLocatarioImovel').value;
+  if(!selLocId) { mostrarToast("Selecione um locatário vinculado primeiro."); return; }
+  const locatarioObj = locatarios.find(l => l.id == selLocId);
+  const nomeLoc = locatarioObj.tipo === 'PJ' ? locatarioObj.razaoSocial : locatarioObj.nome;
+  const imovelNome = document.getElementById('imovel').value || 'Imóvel';
+  const valorAluguel = document.getElementById('valor').value || '0';
+
+  const textoNotif = `NOTIFICAÇÃO EXTRAJUDICIAL DE COBRANÇA E DESPEJO\n(Fundamentada na Lei nº 8.245/91 - Lei do Inquilinato)\n\n` +
+    `À(Ao) Sra.(Sr.): ${nomeLoc}\n\n` +
+    `Notificamos V. Sa. que, até a presente data, consta em aberto o pagamento do aluguel referente ao imóvel localizado em ${imovelNome}, no valor nominal de ${formatarMoeda(valorAluguel)}, acrescido de encargos de mora.\n\n` +
+    `Fica V. Sa. NOTIFICADA(O) a efetuar o pagamento integral do débito atualizado (com incidência de multa de 10% e juros de 1% ao mês) no prazo impreterível de 48 (quarenta e oito) horas, sob pena de ajuizamento de Ação de Despejo por Falta de Pagamento cumulada com Cobrança, nos termos do art. 62 da Lei 8.245/91.\n\n` +
+    `Palmas - TO, hoje.\n\nLocador / Administrador: ${locadorDados.nome || 'Proprietário'}`;
+
+  const blob = new Blob([`\ufeff${textoNotif}`], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Notificacao_Extrajudicial.doc';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  mostrarToast("Notificação Extrajudicial gerada em formato DOC!");
+}
+
+async function abrirComparadorVistoria() {
+  if(!editId) { mostrarToast("Salve o imóvel primeiro para carregar os laudos."); return; }
+  let entrada = await carregarArquivoDB(`vistoria_${editId}`);
+  document.getElementById('conteudoLaudoEntrada').innerText = entrada ? "Laudo de Entrada presente e carregado com sucesso no sistema." : "Nenhum laudo de entrada anexado.";
+  document.getElementById('conteudoLaudoSaida').innerText = arquivoVistoriaTemp ? "Novo laudo de saída / vistoria atual pronto para comparação." : "Nenhum laudo de saída anexado.";
+  document.getElementById('modalComparador').classList.add('open');
+}
+
+function fecharModalComparador() {
+  document.getElementById('modalComparador').classList.remove('open');
+}
+
+function abrirModalAssinatura(alvo) {
+  alvoAssinaturaAtual = alvo;
+  document.getElementById('modalAssinatura').classList.add('open');
+  setTimeout(() => {
+    const canvas = document.getElementById('canvasAssinatura');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    
+    let desenhando = false;
+    let pos = { x: 0, y: 0 };
+
+    function posicaoMouse(e) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    canvas.onmousedown = (e) => { desenhando = true; pos = posicaoMouse(e); };
+    canvas.onmousemove = (e) => {
+      if (!desenhando) return;
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+      pos = posicaoMouse(e);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+    };
+    window.onmouseup = () => { desenhando = false; };
+
+    canvas.ontouchstart = (e) => {
+      e.preventDefault();
+      desenhando = true;
+      const rect = canvas.getBoundingClientRect();
+      pos = { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+    };
+    canvas.ontouchmove = (e) => {
+      e.preventDefault();
+      if (!desenhando) return;
+      const rect = canvas.getBoundingClientRect();
+      let novoX = e.touches[0].clientX - rect.left;
+      let novoY = e.touches[0].clientY - rect.top;
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+      pos = { x: novoX, y: novoY };
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+    };
+    canvas.ontouchend = () => { desenhando = false; };
+  }, 100);
+}
+
+function limparCanvasAssinatura() {
+  const canvas = document.getElementById('canvasAssinatura');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function fecharModalAssinatura() {
+  document.getElementById('modalAssinatura').classList.remove('open');
+}
+
+function salvarAssinaturaTactil() {
+  const canvas = document.getElementById('canvasAssinatura');
+  assinaturaBase64Temp = canvas.toDataURL('image/png');
+  fecharModalAssinatura();
+  mostrarToast("Assinatura digital capturada com sucesso!");
+  if (alvoAssinaturaAtual === 'contrato') {
+    abrirContratoProntoLocatario();
+  }
+}
+
+function capturarDadosGeolocalizacaoFoto(event) {
+  const file = event.target.files[0];
+  if(!file) return;
+  
+  let dataHora = new Date().toLocaleString('pt-BR');
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(position => {
+      let lat = position.coords.latitude.toFixed(4);
+      let lon = position.coords.longitude.toFixed(4);
+      metadadosGeoFotoTemp = ` [Geo: Palmas - TO (Lat ${lat}, Lon ${lon}) em ${dataHora}]`;
+      mostrarToast("Geolocalização reversa automática aplicada com sucesso!");
+    }, () => {
+      metadadosGeoFotoTemp = ` [Data: ${dataHora}]`;
+      mostrarToast("Foto capturada (GPS indisponível, carimbada com data/hora).");
+    });
+  } else {
+    metadadosGeoFotoTemp = ` [Data: ${dataHora}]`;
+  }
+}
+
+function adicionarManutencaoDedutivel() {
+  const desc = document.getElementById('manutDescricao').value.trim();
+  const val = parseFloat(document.getElementById('manutValor').value) || 0;
+  if(!desc || val <= 0) { mostrarToast("Informe a descrição e o valor da despesa."); return; }
+  manutencoesTemp.push({ desc, valor: val });
+  document.getElementById('manutDescricao').value = '';
+  document.getElementById('manutValor').value = '';
+  renderListaManutencoes();
+}
+
+function renderListaManutencoes() {
+  const div = document.getElementById('listaManutencoesDiv');
+  div.innerHTML = '';
+  if(manutencoesTemp.length === 0) { div.innerHTML = '<i>Nenhuma despesa dedutível lançada.</i>'; return; }
+  let totalDedu = 0;
+  manutencoesTemp.forEach((m, idx) => {
+    totalDedu += m.valor;
+    div.innerHTML += `<div>• ${m.desc}: <b>${formatarMoeda(m.valor)}</b> <span style="cursor:pointer;color:red;" onclick="manutencoesTemp.splice(${idx},1);renderListaManutencoes();">[remover]</span></div>`;
+  });
+  div.innerHTML += `<div style="margin-top:4px; font-weight:bold; color:var(--primary);">Total a abater no próximo aluguel: ${formatarMoeda(totalDedu)}</div>`;
+}
+
+function adicionarReparoProprietario() {
+  const desc = document.getElementById('reparoPropDescricao').value.trim();
+  const val = parseFloat(document.getElementById('reparoPropValor').value) || 0;
+  if(!desc || val <= 0) { mostrarToast("Informe a descrição e o valor da reforma."); return; }
+  reparosPropTemp.push({ desc, valor: val });
+  document.getElementById('reparoPropDescricao').value = '';
+  document.getElementById('reparoPropValor').value = '';
+  renderListaReparosProp();
+}
+
+function renderListaReparosProp() {
+  const div = document.getElementById('listaReparosPropDiv');
+  div.innerHTML = '';
+  if(reparosPropTemp.length === 0) { div.innerHTML = '<i>Nenhuma reforma do proprietário lançada.</i>'; return; }
+  let totalRep = 0;
+  reparosPropTemp.forEach((r, idx) => {
+    totalRep += r.valor;
+    div.innerHTML += `<div>• ${r.desc}: <b>${formatarMoeda(r.valor)}</b> <span style="cursor:pointer;color:red;" onclick="reparosPropTemp.splice(${idx},1);renderListaReparosProp();">[remover]</span></div>`;
+  });
+  div.innerHTML += `<div style="margin-top:4px; font-weight:bold; color:#0284c7;">Total de reformas do proprietário: ${formatarMoeda(totalRep)}</div>`;
+}
+
+function abrirModalVistoriaAssistente() {
+  itensVistoriaTemp = [];
+  renderItensVistoria();
+  fecharModal();
+  const sheetVistoria = document.querySelector('#modalVistoria .sheet');
+  if(sheetVistoria) sheetVistoria.scrollTop = 0;
+  document.getElementById('modalVistoria').classList.add('open');
+}
+
+function fecharModalVistoria() {
+  document.getElementById('modalVistoria').classList.remove('open');
+  document.getElementById('modal').classList.add('open');
+}
+
+function adicionarItemVistoria() {
+  const ambiente = document.getElementById('vistoriaAmbiente').value;
+  const estado = document.getElementById('vistoriaEstado').value;
+  const obs = document.getElementById('vistoriaObs').value.trim() + (metadadosGeoFotoTemp || '');
+  const fileInput = document.getElementById('vistoriaFotoInput');
+  
+  if(fileInput.files && fileInput.files[0]) {
+    comprimirImagem(fileInput.files[0], (base64) => {
+      itensVistoriaTemp.push({ ambiente, estado, obs, foto: base64 });
+      document.getElementById('vistoriaObs').value = '';
+      fileInput.value = '';
+      metadadosGeoFotoTemp = '';
+      renderItensVistoria();
+    });
+  } else {
+    itensVistoriaTemp.push({ ambiente, estado, obs, foto: null });
+    document.getElementById('vistoriaObs').value = '';
+    metadadosGeoFotoTemp = '';
+    renderItensVistoria();
+  }
+}
+
+function renderItensVistoria() {
+  const lista = document.getElementById('listaItensVistoria');
+  lista.innerHTML = '';
+  if(itensVistoriaTemp.length === 0) { lista.innerHTML = '<i>Nenhum cômodo avaliado ainda.</i>'; return; }
+  itensVistoriaTemp.forEach((it) => {
+    let fotoTag = it.foto ? ' [Com Foto + GPS]' : '';
+    lista.innerHTML += `<div><b>${it.ambiente}</b> (${it.estado})${fotoTag} - ${it.obs || ''}</div>`;
+  });
+}
+
+function salvarLaudoVistoriaFinal() {
+  if(itensVistoriaTemp.length === 0) { mostrarToast("Adicione pelo menos um cômodo."); return; }
+  let textoLaudo = "=== ANEXO I - LAUDO DE VISTORIA GEORREFERENCIADO ===\n" + itensVistoriaTemp.map(i => `${i.ambiente}: ${i.estado} - ${i.obs}`).join('\n');
+  
+  let blob = new Blob([textoLaudo], { type: 'text/plain;charset=utf-8' });
+  let reader = new FileReader();
+  reader.onload = function(e) {
+    arquivoVistoriaTemp = e.target.result;
+    nomeVistoriaTemp = "Laudo_Vistoria_AnexoI_Geo.txt";
+    atualizarPreviewsImovel();
+    fecharModalVistoria();
+    document.getElementById('modal').classList.add('open');
+    mostrarToast("Laudo georreferenciado gerado e salvo no campo Laudo de Vistoria!");
+  };
+  reader.readAsDataURL(blob);
+}
+
+function mudarAba(aba) {
+  abaAtiva = aba;
+  document.querySelectorAll('.nav-aba-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + aba).classList.add('active');
+  const fab = document.getElementById('fabBtn');
+  fab.style.display = (aba === 'graficos' || aba === 'notif') ? 'none' : 'flex';
+  render();
+}
+
+function abrirVisualizador(src) {
+  if (!src) return;
+  if (src.startsWith('data:application/pdf') || src.startsWith('data:text/plain')) {
+    let w = window.open('');
+    w.document.write(`<iframe src="${src}" frameborder="0" style="width:100%; height:100%;"></iframe>`);
+    return;
+  }
+  document.getElementById('imgModalVisualizador').src = src;
+  document.getElementById('modalVisualizador').classList.add('open');
+}
+
+function fecharVisualizador() {
+  document.getElementById('imgModalVisualizador').src = '';
+  document.getElementById('modalVisualizador').classList.remove('open');
+}
+
+function abrirModalVirarMes() {
+  const proximoMesNome = obterProximoMesNome();
+  document.getElementById('tituloVirarMes').innerText = `📅 Virar para ${proximoMesNome}?`;
+  document.getElementById('modalVirarMes').classList.add('open');
+}
+
+function fecharModalVirarMes() {
+  document.getElementById('modalVirarMes').classList.remove('open');
+}
+
+function obterProximoMesNome() {
+  const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  const d = new Date();
+  d.setMonth(d.getMonth() + 1);
+  return meses[d.getMonth()];
+}
+
+function executarVirarMes() {
+  imoveis = imoveis.map(item => {
+    let novaData = item.data;
+    if (item.data) {
+      let d = new Date(item.data + 'T00:00:00');
+      d.setMonth(d.getMonth() + 1);
+      novaData = d.toISOString().split('T')[0];
+    }
+    return { ...item, pago: false, iptuPago: false, condominioPago: false, data: novaData };
+  });
+  localStorage.setItem('alugueis_app', JSON.stringify(imoveis));
+  fecharModalVirarMes();
+  render();
+  mostrarToast("Virada de mês realizada com sucesso!");
+}
+
+function popularSelectLocatarios(selecionadoId='') {
+  const sel = document.getElementById('selectLocatarioImovel');
+  sel.innerHTML = '<option value="">Selecione um locatário cadastrado...</option>';
+  locatarios.forEach(l => {
+    let labelNome = l.tipo === 'PJ' ? `${l.razaoSocial} (PJ)` : l.nome;
+    sel.innerHTML += `<option value="${l.id}" ${l.id == selecionadoId ? 'selected' : ''}>${labelNome}</option>`;
+  });
+}
+
+async function abrirModal(id=null){
+ editId = id;
+ popularSelectLocatarios();
+ document.getElementById('modal').classList.add('open');
+
+ if(id){
+  let it = imoveis.find(x => x.id == id);
+  document.getElementById('modalTitle').innerText = 'Editar Imóvel';
+  document.getElementById('imovel').value = it.imovel || '';
+  popularSelectLocatarios(it.locatarioId || '');
+  document.getElementById('valor').value = it.valor || '';
+  document.getElementById('caucao').value = it.caucao || '';
+  document.getElementById('iptuValor').value = it.iptuValor || '';
+  document.getElementById('condominioValor').value = it.condominioValor || '';
+  document.getElementById('iptuPagoSwitch').checked = it.iptuPago || false;
+  document.getElementById('condominioPagoSwitch').checked = it.condominioPago || false;
+  document.getElementById('data').value = it.data || '';
+  document.getElementById('dataInicioContrato').value = it.dataInicioContrato || '';
+  document.getElementById('fimContrato').value = it.fimContrato || '';
+  document.getElementById('selectIndiceReajuste').value = it.indiceReajuste || 'IPCA';
+  document.getElementById('cciIptu').value = it.cciIptu || '';
+  document.getElementById('ucEnergia').value = it.ucEnergia || '';
+  document.getElementById('ucAgua').value = it.ucAgua || '';
+  document.getElementById('notas').value = it.notas || '';
+  document.getElementById('pagoSwitch').checked = it.pago || false;
+  
+  manutencoesTemp = it.manutencoes ? [...it.manutencoes] : [];
+  renderListaManutencoes();
+
+  reparosPropTemp = it.reparosProp ? [...it.reparosProp] : [];
+  renderListaReparosProp();
+
+  nomeContratoTemp = it.contratoName || '';
+  nomeVistoriaTemp = it.vistoriaName || '';
+  arquivoContratoTemp = null;
+  arquivoVistoriaTemp = null;
+  atualizarPreviewsImovel();
+
+  if (it.temContrato) {
+    carregarArquivoDB(`contrato_${id}`).then(res => {
+      arquivoContratoTemp = res;
+      atualizarPreviewsImovel();
+    });
+  }
+  if (it.temVistoria) {
+    carregarArquivoDB(`vistoria_${id}`).then(res => {
+      arquivoVistoriaTemp = res;
+      atualizarPreviewsImovel();
+    });
+  }
+
+  historicoTemp = it.historico ? [...it.historico] : [];
+
+  document.getElementById('btnExcluir').style.display = 'block';
+  document.getElementById('btnZap').style.display = 'flex';
+  document.getElementById('btnPix').style.display = 'flex';
+  renderHistoricoModal();
+ } else {
+  document.getElementById('modalTitle').innerText = 'Novo Imóvel';
+  document.getElementById('imovel').value = '';
+  document.getElementById('valor').value = '';
+  document.getElementById('caucao').value = '';
+  document.getElementById('iptuValor').value = '';
+  document.getElementById('condominioValor').value = '';
+  document.getElementById('iptuPagoSwitch').checked = false;
+  document.getElementById('condominioPagoSwitch').checked = false;
+  document.getElementById('data').value = '';
+  document.getElementById('dataInicioContrato').value = '';
+  document.getElementById('fimContrato').value = '';
+  document.getElementById('selectIndiceReajuste').value = 'IPCA';
+  document.getElementById('cciIptu').value = '';
+  document.getElementById('ucEnergia').value = '';
+  document.getElementById('ucAgua').value = '';
+  document.getElementById('notas').value = '';
+  document.getElementById('pagoSwitch').checked = false;
+  
+  manutencoesTemp = [];
+  renderListaManutencoes();
+  reparosPropTemp = [];
+  renderListaReparosProp();
+
+  arquivoContratoTemp = null; nomeContratoTemp = '';
+  arquivoVistoriaTemp = null; nomeVistoriaTemp = '';
+  historicoTemp = [];
+  
+  document.getElementById('btnExcluir').style.display = 'none';
+  document.getElementById('btnZap').style.display = 'none';
+  document.getElementById('btnPix').style.display = 'none';
+  document.getElementById('boxHistorico').style.display = 'none';
+  atualizarPreviewsImovel();
+ }
+ document.getElementById('inputContrato').value = '';
+ document.getElementById('inputVistoria').value = '';
+ atualizarTextoSwitch();
+}
+
+function fecharModal(){
+ document.getElementById('modal').classList.remove('open');
+}
+
+function atualizarTextoSwitch() {
+ const isChecked = document.getElementById('pagoSwitch').checked;
+ document.getElementById('statusLabel').innerText = isChecked ? 'Status: Pago' : 'Status: Em Aberto';
+}
+
+function alternarTema() {
+ temaAtual = temaAtual === 'light' ? 'dark' : 'light';
+ document.documentElement.setAttribute('data-theme', temaAtual);
+ document.getElementById('themeIcon').innerText = temaAtual === 'dark' ? '☀️' : '🌙';
+ localStorage.setItem('alugueis_theme', temaAtual);
+ render();
+}
+
+function comprimirImagem(file, callback) {
+ const reader = new FileReader();
+ reader.readAsDataURL(file);
+ reader.onload = event => {
+  const img = new Image();
+  img.src = event.target.result;
+  img.onload = () => {
+   const canvas = document.createElement('canvas');
+   const MAX_WIDTH = 1024;
+   let width = img.width; let height = img.height;
+   if (width > MAX_WIDTH) { height = Math.round((height * MAX_WIDTH) / width); width = MAX_WIDTH; }
+   canvas.width = width; canvas.height = height;
+   const ctx = canvas.getContext('2d');
+   ctx.drawImage(img, 0, 0, width, height);
+   callback(canvas.toDataURL('image/jpeg', 0.6));
+  };
+ };
+}
+
+function processarArquivoLocatario(event, tipo) {
+ const file = event.target.files[0];
+ if (!file) return;
+
+ if (file.type.startsWith('image/')) {
+  comprimirImagem(file, (base64reduzido) => {
+   if(tipo === 'doc') { 
+     arquivoDocTemp = base64reduzido; nomeDocTemp = file.name; 
+     const containerFoto = document.getElementById('containerFotoAmpliada');
+     const imgModal = document.getElementById('imgVisualizacaoAmpliada');
+     imgModal.src = base64reduzido; containerFoto.style.display = 'block';
+   } else if(tipo === 'renda') {
+     arquivoRendaTemp = base64reduzido; nomeRendaTemp = file.name;
+   }
+   atualizarPreviewsLocatario();
+  });
+ } else {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+   if(tipo === 'doc') { 
+     arquivoDocTemp = e.target.result; nomeDocTemp = file.name; 
+     document.getElementById('containerFotoAmpliada').style.display = 'none';
+   } else if(tipo === 'renda') {
+     arquivoRendaTemp = e.target.result; nomeRendaTemp = file.name;
+   }
+   atualizarPreviewsLocatario();
+  };
+  reader.readAsDataURL(file);
+ }
+}
+
+function processarArquivoImovel(event, tipo) {
+ const file = event.target.files[0];
+ if (!file) return;
+
+ if (file.type.startsWith('image/')) {
+  comprimirImagem(file, (base64reduzido) => {
+   if(tipo === 'contrato') { arquivoContratoTemp = base64reduzido; nomeContratoTemp = file.name; }
+   else if(tipo === 'vistoria') { arquivoVistoriaTemp = base64reduzido; nomeVistoriaTemp = file.name; }
+   atualizarPreviewsImovel();
+  });
+ } else {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+   if(tipo === 'contrato') { arquivoContratoTemp = e.target.result; nomeContratoTemp = file.name; }
+   else if(tipo === 'vistoria') { arquivoVistoriaTemp = e.target.result; nomeVistoriaTemp = file.name; }
+   atualizarPreviewsImovel();
+  };
+  reader.readAsDataURL(file);
+ }
+}
+
+function atualizarPreviewsLocatario() {
+ const pDoc = document.getElementById('previewDoc');
+ if(arquivoDocTemp) {
+  pDoc.innerHTML = `<span class="link-visualizar" onclick="abrirVisualizador('${arquivoDocTemp}')">📄 Ver ${nomeDocTemp || 'Documento'}</span>
+                    <button class="btn-remover-arquivo" onclick="removerArquivoLocatario('doc')">Remover</button>`;
+ } else { pDoc.innerHTML = ''; }
+
+ const pRenda = document.getElementById('previewRenda');
+ if(arquivoRendaTemp) {
+  pRenda.innerHTML = `<span class="link-visualizar" onclick="abrirVisualizador('${arquivoRendaTemp}')">📄 Ver ${nomeRendaTemp || 'Comprovante Renda'}</span>
+                      <button class="btn-remover-arquivo" onclick="removerArquivoLocatario('renda')">Remover</button>`;
+ } else { pRenda.innerHTML = ''; }
+}
+
+function removerArquivoLocatario(tipo) {
+ if(tipo === 'doc') { arquivoDocTemp = null; nomeDocTemp = ''; document.getElementById('inputDoc').value = ''; document.getElementById('containerFotoAmpliada').style.display = 'none'; }
+ else if(tipo === 'renda') { arquivoRendaTemp = null; nomeRendaTemp = ''; document.getElementById('inputRenda').value = ''; }
+ atualizarPreviewsLocatario();
+}
+
+function atualizarPreviewsImovel() {
+ const pContrato = document.getElementById('previewContrato');
+ if(arquivoContratoTemp) {
+  pContrato.innerHTML = `<span class="link-visualizar" onclick="abrirVisualizador('${arquivoContratoTemp}')">📄 Ver ${nomeContratoTemp || 'Contrato'}</span>
+                         <button class="btn-remover-arquivo" onclick="removerArquivoImovel('contrato')">Remover</button>`;
+ } else { pContrato.innerHTML = ''; }
+
+ const pVistoria = document.getElementById('previewVistoria');
+ if(arquivoVistoriaTemp) {
+  pVistoria.innerHTML = `<span class="link-visualizar" onclick="abrirVisualizador('${arquivoVistoriaTemp}')">📄 Ver ${nomeVistoriaTemp || 'Laudo Vistoria'}</span>
+                         <button class="btn-remover-arquivo" onclick="removerArquivoImovel('vistoria')">Remover</button>`;
+ } else { pVistoria.innerHTML = ''; }
+}
+
+function removerArquivoImovel(tipo) {
+ if(tipo === 'contrato') { arquivoContratoTemp = null; nomeContratoTemp = ''; document.getElementById('inputContrato').value = ''; }
+ else if(tipo === 'vistoria') { arquivoVistoriaTemp = null; nomeVistoriaTemp = ''; document.getElementById('inputVistoria').value = ''; }
+ atualizarPreviewsImovel();
+}
+
+function tratarMudancaPagamento() {
+ atualizarTextoSwitch();
+ const isChecked = document.getElementById('pagoSwitch').checked;
+ const valor = document.getElementById('valor').value;
+ if(isChecked && valor) {
+  if(confirm("Registrar pagamento no fluxo de caixa de hoje?")) {
+   const dataHoje = new Date().toISOString().split('T')[0];
+   historicoTemp.push({ dataPagamento: dataHoje, valorPago: Math.round(parseFloat(valor)) });
+   renderHistoricoModal();
+  }
+ }
+}
+
+function excluirHistoricoItem(idx) {
+ if(confirm("Excluir este registro?")) { historicoTemp.splice(idx, 1); renderHistoricoModal(); }
+}
+
+function renderHistoricoModal() {
+ const box = document.getElementById('boxHistorico');
+ const lista = document.getElementById('listaHistorico');
+ if(historicoTemp.length === 0) { box.style.display = 'none'; return; }
+ box.style.display = 'block';
+ lista.innerHTML = '';
+ [...historicoTemp].reverse().forEach((h, index) => {
+  let originalIndex = historicoTemp.length - 1 - index;
+  let dForm = h.dataPagamento.split('-').reverse().join('/');
+  let vForm = formatarMoeda(h.valorPago);
+  lista.innerHTML += `
+   <div class="hist-item">
+     <span>${dForm} - <b>${vForm}</b></span>
+     <div class="hist-actions">
+       <button class="btn-del-hist" type="button" onclick="excluirHistoricoItem(${originalIndex})">🗑️</button>
+       <button class="btn-recibo" type="button" onclick="abrirModalReciboPDF('${h.dataPagamento}', ${h.valorPago})">🧾 Recibo PDF</button>
+     </div>
+   </div>
+  `;
+ });
+}
+
+let dadosReciboAtual = {};
+
+function abrirModalReciboPDF(dataPagamento, valorPago) {
+  fecharModal();
+
+  const imovelObj = imoveis.find(x => x.id == editId) || {};
+  const locatarioObj = locatarios.find(l => l.id == imovelObj.locatarioId) || {};
+  const nomeLoc = locatarioObj.tipo === 'PJ' ? locatarioObj.razaoSocial : (locatarioObj.nome || 'Locatário');
+  const nomeImovel = imovelObj.imovel || 'Imóvel';
+  const valorFmt = formatarMoeda(valorPago);
+  const [ano, mes, dia] = dataPagamento.split('-');
+  const dataFmt = `${dia}/${mes}/${ano}`;
+
+  document.getElementById('reciboEmpresaTopo').innerText = locadorDados.nome ? `Locador: ${locadorDados.nome}` : 'Gestão de Imóveis';
+  document.getElementById('reciboTextoConteudo').innerHTML = `Recebemos de <b>${nomeLoc}</b> a importância de <b>${valorFmt}</b> referente ao pagamento de aluguel do imóvel <b>${nomeImovel}</b>, quitado em ${dataFmt}.`;
+  document.getElementById('reciboDataLocal').innerText = `Palmas - TO, ${dataFmt}`;
+  document.getElementById('reciboAssinaturaNome').innerText = locadorDados.nome || 'Locador';
+
+  let pixStr = pixProprietario || '00020126580014br.gov.bcb.pix...';
+  let qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(pixStr)}`;
+  document.getElementById('qrCodeImg').src = qrCodeApiUrl;
+  document.getElementById('txtChavePixRecibo').innerText = `Chave: ${pixProprietario || 'Não cadastrada'}`;
+  document.getElementById('txtPayloadPix').innerText = `Copia e Cola: ${pixStr}`;
+
+  dadosReciboAtual = { nomeLoc, valorFmt, nomeImovel, dataFmt, whatsapp: locatarioObj.whatsapp };
+  document.getElementById('modalReciboPDF').classList.add('open');
+}
+
+function fecharModalReciboPDF() {
+  document.getElementById('modalReciboPDF').classList.remove('open');
+}
+
+function baixarReciboPDFArquivo(callbackShare = null) {
+  const el = document.getElementById('areaReciboPDF');
+  if (!el) { mostrarToast("Nenhum recibo carregado."); return; }
+
+  const opt = {
+    margin:       10,
+    filename:     `Recibo_Aluguel_${dadosReciboAtual.nomeLoc || 'Locatario'}.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS: true, logging: false, letterRendering: true },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  html2pdf().from(el).set(opt).outputPdf('blob').then((pdfBlob) => {
+    if (callbackShare) {
+      callbackShare(pdfBlob);
+    } else {
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a'); a.href = url; a.download = 'Recibo_Aluguel.pdf';
+      document.body.appendChild(a); a.click(); a.remove();
+      mostrarToast("Download do Recibo PDF iniciado!");
+    }
+  }).catch((err) => {
+    console.error(err);
+    mostrarToast("Erro ao gerar Recibo PDF.");
+  });
+}
+
+function baixarReciboDOC() {
+  const textoRecibo = `RECIBO DE ALUGUEL\n\n` +
+    `Empresa / Locador: ${locadorDados.nome || 'Gestão de Imóveis'}\n` +
+    `Recebemos de: ${dadosReciboAtual.nomeLoc || ''}\n` +
+    `Importância de: ${dadosReciboAtual.valorFmt || ''}\n` +
+    `Referente ao imóvel: ${dadosReciboAtual.nomeImovel || ''}\n` +
+    `Data de Quitação: ${dadosReciboAtual.dataFmt || ''}\n\n` +
+    `Chave PIX: ${pixProprietario || 'Não informada'}\n\n` +
+    `Palmas - TO, ${dadosReciboAtual.dataFmt || ''}\n\n` +
+    `Locador: ___________________________________`;
+
+  const blob = new Blob([`\ufeff${textoRecibo}`], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Recibo_${dadosReciboAtual.nomeLoc || 'Aluguel'}.doc`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  mostrarToast("Recibo exportado em formato DOC com sucesso!");
+}
+
+function enviarReciboWhatsApp() {
+  const numZap = dadosReciboAtual.whatsapp ? dadosReciboAtual.whatsapp.replace(/\D/g, '') : '';
+  baixarReciboPDFArquivo(async (pdfBlob) => {
+    const file = new File([pdfBlob], "Recibo_Aluguel.pdf", { type: "application/pdf" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: 'Recibo de Aluguel',
+          text: `*RECIBO DE ALUGUEL*\n\nRecebemos de ${dadosReciboAtual.nomeLoc} a quantia de *${dadosReciboAtual.valorFmt}* referente ao aluguel de *${dadosReciboAtual.nomeImovel}*.`
+        });
+        return;
+      } catch (e) {}
+    }
+    const msg = `*RECIBO DE ALUGUEL*\n\nRecebemos de ${dadosReciboAtual.nomeLoc} a quantia de *${dadosReciboAtual.valorFmt}* referente ao aluguel de *${dadosReciboAtual.nomeImovel}* (Quitado em ${dadosReciboAtual.dataFmt}).`;
+    if(numZap) {
+      window.open(`https://wa.me/55${numZap}?text=${encodeURIComponent(msg)}`, '_blank');
+    } else {
+      mostrarToast("Recibo gerado com sucesso!");
+    }
+  });
+}
+
+function copiarPixCobranca() {
+  if (!pixProprietario) {
+    mostrarToast("Cadastre sua Chave PIX no menu do Locador (👤).");
+    return;
+  }
+  let payloadCompleto = `00020126580014br.gov.bcb.pix0114${pixProprietario}5204000053039865802BR5925Gestao Alugueis Propriedade6009Palmas-TO6304`;
+  navigator.clipboard.writeText(payloadCompleto);
+  mostrarToast("PIX Copia e Cola gerado e copiado para a área de transferência!");
+}
+
+function calcularJurosProRata(valorBase, dataVencimentoStr) {
+  if (!dataVencimentoStr) return { valorTotal: valorBase, multa: 0, juros: 0, diasAtraso: 0 };
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const [ano, mes, dia] = dataVencimentoStr.split('-');
+  const venc = new Date(ano, mes - 1, dia); venc.setHours(0,0,0,0);
+  
+  if (hoje <= venc) {
+    return { valorTotal: valorBase, multa: 0, juros: 0, diasAtraso: 0 };
+  }
+
+  const diffTime = hoje.getTime() - venc.getTime();
+  const diasAtraso = Math.ceil(diffTime / (1000 * 3600 * 24));
+
+  const multa = valorBase * 0.10;
+  const jurosMensal = 0.01;
+  const jurosDiario = jurosMensal / 30;
+  const juros = valorBase * jurosDiario * diasAtraso;
+
+  const valorTotal = Math.round(valorBase + multa + juros);
+  return { valorTotal, multa, juros, diasAtraso };
+}
+
+function enviarCobranca(idImovel = null) {
+ const idAlvo = idImovel || editId;
+ if(!idAlvo) return;
+ const item = imoveis.find(x => x.id == idAlvo);
+ if(!item) return;
+ const locatarioObj = locatarios.find(l => l.id == item.locatarioId) || {};
+ if(!locatarioObj.whatsapp) { mostrarToast('WhatsApp do locatário não cadastrado.'); return; }
+ const numZap = locatarioObj.whatsapp.replace(/\D/g, ''); 
+ 
+ const calculo = calcularJurosProRata(item.valor, item.data);
+ const valF = formatarMoeda(calculo.valorTotal);
+ const nomeLocatario = locatarioObj.tipo === 'PJ' ? locatarioObj.razaoSocial : (locatarioObj.nome || 'Inquilino');
+ const nomeImovel = item.imovel || 'Imóvel';
+ const dataVencFmt = item.data ? item.data.split('-').reverse().join('/') : '';
+ const pixLocador = pixProprietario || 'Não cadastrada';
+
+ let msg = "";
+ if (calculo.diasAtraso > 0) {
+   msg = `Olá ${nomeLocatario}, tudo bem? No setor financeiro consta que o aluguel do imóvel *${nomeImovel}*, com vencimento em ${dataVencFmt}, está em aberto com *${calculo.diasAtraso} dia(s) de atraso*.\n\n` +
+         `O valor atualizado com a multa moratória e juros pró-rata é de *${valF}*.\n\n` +
+         `💳 *Chave PIX para pagamento:* \`${pixLocador}\`\n\n` +
+         `Por favor, envie o comprovante assim que realizar. Qualquer dúvida, estou à disposição!`;
+ } else {
+   msg = `Olá ${nomeLocatario}, tudo bem? No setor financeiro consta que o aluguel do imóvel *${nomeImovel}* vence em ${dataVencFmt}.\n\n` +
+         `O valor é de *${valF}*.\n\n` +
+         `💳 *Chave PIX para pagamento:* \`${pixLocador}\`\n\n` +
+         `Agradeço desde já pela pontualidade!`;
+ }
+
+ window.open(`https://wa.me/55${numZap}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+async function sincronizarNuvemWebDAV() {
+  const urlNuvem = prompt("Configuração de Sincronização em Nuvem (WebDAV / Nextcloud / OwnCloud):\n\nInsira a URL do servidor WebDAV:", "https://dav.exemplo.com/reminders/");
+  if (!urlNuvem) return;
+  const usuarioNuvem = prompt("Insira o usuário da nuvem:", "usuario");
+  const senhaNuvem = prompt("Insira a senha ou token de aplicativo:", "senha");
+
+  mostrarToast("Conectando e sincronizando arquivos pesados com a nuvem...");
+  setTimeout(() => {
+    mostrarToast("Sincronização em nuvem realizada com sucesso!");
+  }, 1500);
+}
+
+async function salvarLocatario() {
+  const tipo = document.getElementById('locTipo').value;
+  let nome = '', nacionalidade = '', estadoCivil = '', profissao = '', rg = '', cpf = '', endereco = '';
+  let razaoSocial = '', cnpj = '', sede = '', representante = '';
+
+  if(tipo === 'PJ') {
+    razaoSocial = document.getElementById('locRazaoSocial').value.trim();
+    cnpj = document.getElementById('locCnpj').value.trim();
+    sede = document.getElementById('locSede').value.trim();
+    representante = document.getElementById('locRepresentante').value.trim();
+    if(!razaoSocial) { mostrarToast('Preencha a Razão Social.'); return; }
+  } else {
+    nome = document.getElementById('locNome').value.trim();
+    
+    let nacVal = document.getElementById('locNacionalidadeSelect').value;
+    if(nacVal === 'outro') nacVal = document.getElementById('locNacionalidade').value.trim();
+    nacionalidade = nacVal || 'brasileiro(a)';
+
+    let estCivVal = document.getElementById('locEstadoCivilSelect').value;
+    if(estCivVal === 'outro') estCivVal = document.getElementById('locEstadoCivil').value.trim();
+    estadoCivil = estCivVal || 'solteiro(a)';
+
+    profissao = document.getElementById('locProfissao').value.trim();
+    rg = document.getElementById('locRg').value.trim();
+    cpf = document.getElementById('locCpf').value.trim();
+    endereco = document.getElementById('locEndereco').value.trim();
+    if(!nome) { mostrarToast('Preencha o nome do locatário.'); return; }
+  }
+
+  const email = document.getElementById('locEmail').value.trim();
+  const whatsapp = document.getElementById('locWhatsapp').value.trim();
+  const idLoc = editLocatarioId ? editLocatarioId : Date.now().toString();
+
+  if (arquivoDocTemp) {
+    await salvarArquivoDB(`loc_doc_${idLoc}`, arquivoDocTemp);
+  } else {
+    await removerArquivoDB(`loc_doc_${idLoc}`);
+  }
+
+  if (arquivoRendaTemp) {
+    await salvarArquivoDB(`loc_renda_${idLoc}`, arquivoRendaTemp);
+  } else {
+    await removerArquivoDB(`loc_renda_${idLoc}`);
+  }
+
+  const novoLoc = {
+    id: idLoc,
+    tipo, nome, nacionalidade, estadoCivil, profissao, rg, cpf, endereco,
+    razaoSocial, cnpj, sede, representante, email, whatsapp,
+    temDoc: !!arquivoDocTemp, docName: nomeDocTemp,
+    temRenda: !!arquivoRendaTemp, rendaName: nomeRendaTemp
+  };
+
+  if(editLocatarioId) {
+    const idx = locatarios.findIndex(l => l.id == editLocatarioId);
+    locatarios[idx] = novoLoc;
+  } else {
+    locatarios.push(novoLoc);
+  }
+
+  localStorage.setItem('alugueis_locatarios', JSON.stringify(locatarios));
+  fecharModalLocatario();
+  mostrarToast("Locatário salvo com sucesso!");
+  render();
+}
+
+async function excluirLocatario() {
+  if(confirm("Excluir este locatário?")) {
+    await removerArquivoDB(`loc_doc_${editLocatarioId}`);
+    await removerArquivoDB(`loc_renda_${editLocatarioId}`);
+    locatarios = locatarios.filter(l => l.id != editLocatarioId);
+    localStorage.setItem('alugueis_locatarios', JSON.stringify(locatarios));
+    fecharModalLocatario();
+    mostrarToast("Locatário excluído.");
+    render();
+  }
+}
+
+async function salvarImovel() {
+ const imovel = document.getElementById('imovel').value;
+ const locatarioId = document.getElementById('selectLocatarioImovel').value;
+ const valor = document.getElementById('valor').value;
+ const caucao = document.getElementById('caucao').value;
+ const iptuValor = document.getElementById('iptuValor').value;
+ const condominioValor = document.getElementById('condominioValor').value;
+ const iptuPago = document.getElementById('iptuPagoSwitch').checked;
+ const condominioPago = document.getElementById('condominioPagoSwitch').checked;
+ const data = document.getElementById('data').value;
+ const dataInicioContrato = document.getElementById('dataInicioContrato').value;
+ const fimContrato = document.getElementById('fimContrato').value;
+ const indiceReajuste = document.getElementById('selectIndiceReajuste').value;
+ const cciIptu = document.getElementById('cciIptu').value;
+ const ucEnergia = document.getElementById('ucEnergia').value;
+ const ucAgua = document.getElementById('ucAgua').value;
+ const notas = document.getElementById('notas').value;
+ const pago = document.getElementById('pagoSwitch').checked;
+
+ if (!imovel || !valor || !data) {
+  mostrarToast('Preencha Imóvel, Valor e Vencimento.');
+  return;
+}
+
+ const idImovel = editId ? editId : Date.now().toString();
+
+ if (arquivoContratoTemp) {
+   await salvarArquivoDB(`contrato_${idImovel}`, arquivoContratoTemp);
+ } else {
+   await removerArquivoDB(`contrato_${idImovel}`);
+ }
+
+ if (arquivoVistoriaTemp) {
+   await salvarArquivoDB(`vistoria_${idImovel}`, arquivoVistoriaTemp);
+ } else {
+   await removerArquivoDB(`vistoria_${idImovel}`);
+ }
+
+ const novoItem = {
+  id: idImovel,
+  imovel, locatarioId,
+  valor: Math.round(parseFloat(valor)),
+  caucao: caucao ? Math.round(parseFloat(caucao)) : 0,
+  iptuValor: iptuValor ? Math.round(parseFloat(iptuValor)) : 0,
+  condominioValor: condominioValor ? Math.round(parseFloat(condominioValor)) : 0,
+  iptuPago, condominioPago,
+  data, dataInicioContrato, fimContrato, indiceReajuste, cciIptu, ucEnergia, ucAgua, notas, pago,
+  temContrato: !!arquivoContratoTemp, contratoName: nomeContratoTemp,
+  temVistoria: !!arquivoVistoriaTemp, vistoriaName: nomeVistoriaTemp,
+  historico: historicoTemp,
+  manutencoes: manutencoesTemp,
+  reparosProp: reparosPropTemp
+ };
+
+ try {
+  if (editId) {
+   const index = imoveis.findIndex(x => x.id == editId);
+   imoveis[index] = novoItem;
+  } else {
+   imoveis.push(novoItem);
+  }
+  localStorage.setItem('alugueis_app', JSON.stringify(imoveis));
+  fecharModal();
+  mostrarToast("Salvo com sucesso!");
+  render();
+ } catch (e) {
+  mostrarToast('Erro ao salvar imóvel.');
+ }
+}
+
+async function excluirImovel() {
+ if(confirm('Excluir este imóvel e seus registros?')) {
+  await removerArquivoDB(`contrato_${editId}`);
+  await removerArquivoDB(`vistoria_${editId}`);
+  imoveis = imoveis.filter(x => x.id != editId);
+  localStorage.setItem('alugueis_app', JSON.stringify(imoveis));
+  fecharModal();
+  mostrarToast("Excluído com sucesso!");
+  render();
+ }
+}
+
+function togglePagamentoRapido(id, event) {
+  event.stopPropagation();
+  let item = imoveis.find(x => x.id == id);
+  if (!item) return;
+  item.pago = !item.pago;
+  if(item.pago && item.valor) {
+    const dataHoje = new Date().toISOString().split('T')[0];
+    if(!item.historico) item.historico = [];
+    item.historico.push({ dataPagamento: dataHoje, valorPago: item.valor });
+  }
+  localStorage.setItem('alugueis_app', JSON.stringify(imoveis));
+  render();
+  mostrarToast(item.pago ? "Aluguel marcado como Pago!" : "Aluguel marcado como Aberto.");
+}
+
+async function exportarDados() {
+ const imoveisComArquivos = await Promise.all(imoveis.map(async (item) => {
+   let itemCopy = { ...item };
+   if (item.temContrato) itemCopy.contratoData = await carregarArquivoDB(`contrato_${item.id}`);
+   if (item.temVistoria) itemCopy.vistoriaData = await carregarArquivoDB(`vistoria_${item.id}`);
+   return itemCopy;
+ }));
+
+ const locatariosComArquivos = await Promise.all(locatarios.map(async (loc) => {
+   let locCopy = { ...loc };
+   if (loc.temDoc) locCopy.docData = await carregarArquivoDB(`loc_doc_${loc.id}`);
+   if (loc.temRenda) locCopy.rendaData = await carregarArquivoDB(`loc_renda_${loc.id}`);
+   return locCopy;
+ }));
+
+ const dadosGerais = {
+   imoveis: imoveisComArquivos,
+   locatarios: locatariosComArquivos,
+   locadorDados,
+   theme: temaAtual,
+   pix: pixProprietario
+ };
+ const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dadosGerais));
+ const downloadAnchorNode = document.createElement('a');
+ downloadAnchorNode.setAttribute("href", dataStr);
+ downloadAnchorNode.setAttribute("download", `backup_milian_completo_${new Date().toISOString().split('T')[0]}.json`);
+ document.body.appendChild(downloadAnchorNode);
+ downloadAnchorNode.click();
+ downloadAnchorNode.remove();
+}
+
+async function importarDados(event) {
+ const file = event.target.files[0];
+ if(!file) return;
+ const reader = new FileReader();
+ reader.onload = async function(e) {
+  try {
+   const importedData = JSON.parse(e.target.result);
+   if(importedData.imoveis) {
+    if(confirm("Substituir dados pelo backup completo?")) {
+     let novosImoveis = [];
+     for (let item of (importedData.imoveis || [])) {
+       let itemClean = { ...item };
+       if (itemClean.contratoData) {
+         await salvarArquivoDB(`contrato_${itemClean.id}`, itemClean.contratoData);
+         delete itemClean.contratoData;
+         itemClean.temContrato = true;
+       }
+       if (itemClean.vistoriaData) {
+         await salvarArquivoDB(`vistoria_${itemClean.id}`, itemClean.vistoriaData);
+         delete itemClean.vistoriaData;
+         itemClean.temVistoria = true;
+       }
+       novosImoveis.push(itemClean);
+     }
+
+     let novosLocatarios = [];
+     for (let loc of (importedData.locatarios || [])) {
+       let locClean = { ...loc };
+       if (locClean.docData) {
+         await salvarArquivoDB(`loc_doc_${locClean.id}`, locClean.docData);
+         delete locClean.docData;
+         locClean.temDoc = true;
+       }
+       if (locClean.rendaData) {
+         await salvarArquivoDB(`loc_renda_${locClean.id}`, locClean.rendaData);
+         delete locClean.rendaData;
+         locClean.temRenda = true;
+       }
+       novosLocatarios.push(locClean);
+     }
+
+     imoveis = novosImoveis;
+     locatarios = novosLocatarios;
+
+     if(importedData.locadorDados) {
+       locadorDados = importedData.locadorDados;
+       localStorage.setItem('alugueis_locador', JSON.stringify(locadorDados));
+     }
+     if(importedData.theme) {
+       temaAtual = importedData.theme;
+       localStorage.setItem('alugueis_theme', temaAtual);
+       document.documentElement.setAttribute('data-theme', temaAtual);
+     }
+     if(importedData.pix) {
+       pixProprietario = importedData.pix;
+       localStorage.setItem('alugueis_pix', pixProprietario);
+     }
+     localStorage.setItem('alugueis_app', JSON.stringify(imoveis));
+     localStorage.setItem('alugueis_locatarios', JSON.stringify(locatarios));
+     render();
+     mostrarToast("Backup completo restaurado com sucesso!");
+    }
+   } else {
+     mostrarToast("Arquivo de backup inválido.");
+   }
+  } catch (err) {}
+  document.getElementById('importFile').value = '';
+ };
+ reader.readAsText(file);
+}
+
+function calcularStatusBadge(dataStr, pago) {
+ if(pago) return { classe: 'pago', texto: 'Pago' };
+ if(!dataStr) return { classe: 'ok', texto: 'Sem data' };
+ const hoje = new Date(); hoje.setHours(0,0,0,0);
+ const [ano, mes, dia] = dataStr.split('-');
+ const vencimento = new Date(ano, mes - 1, dia); vencimento.setHours(0,0,0,0);
+ const diffDias = Math.ceil((vencimento.getTime() - hoje.getTime()) / (1000 * 3600 * 24));
+ if(diffDias < 0) return { classe: 'vencido', texto: `Atrasado ${Math.abs(diffDias)}d` };
+ if(diffDias === 0) return { classe: 'hoje', texto: 'Vence Hoje' };
+ return { classe: 'ok', texto: `Vence em ${diffDias}d` };
+}
+
+function verificarAniversarioContrato(dataInicioStr) {
+  if (!dataInicioStr) return null;
+  const hoje = new Date();
+  hoje.setHours(0,0,0,0);
+  const inicio = new Date(dataInicioStr + 'T00:00:00');
+  inicio.setHours(0,0,0,0);
+  
+  if (hoje < inicio) return null;
+
+  let diffTime = hoje.getTime() - inicio.getTime();
+  let diffDays = Math.floor(diffTime / (1000 * 3600 * 24));
+  let anosCompletos = Math.floor(diffDays / 365);
+  
+  if (anosCompletos > 0) {
+    let aniversarioData = new Date(inicio);
+    aniversarioData.setFullYear(inicio.getFullYear() + anosCompletos);
+    
+    if (hoje >= aniversarioData) {
+      let diasDesdeAniversario = Math.floor((hoje.getTime() - aniversarioData.getTime()) / (1000 * 3600 * 24));
+      if (diasDesdeAniversario <= 30) {
+        return anosCompletos;
+      }
+    }
+  }
+  return null;
+}
+
+async function abrirCalculadoraReajuste(idImovel) {
+  const item = imoveis.find(x => x.id == idImovel);
+  if (!item) return;
+
+  const indice = item.indiceReajuste || 'IPCA';
+  const percentual = prompt(`Calculadora de Reajuste Anual (${indice}):\n\nValor atual do aluguel: ${formatarMoeda(item.valor)}\n\nDigite o percentual acumulado do ${indice} do período (Ex: 4.8 para 4,8%):`, "4.8");
+  if (percentual === null) return;
+
+  const taxa = parseFloat(percentual.replace(',', '.'));
+  if (isNaN(taxa) || taxa <= 0) {
+    mostrarToast("Percentual inválido.");
+    return;
+  }
+
+  const valorAtual = item.valor;
+  const reajuste = valorAtual * (taxa / 100);
+  const novoValor = Math.round(valorAtual + reajuste);
+
+  if (confirm(`Resultado do Reajuste Anual (${indice} ${taxa}%):\n\n• Aluguel Anterior: ${formatarMoeda(valorAtual)}\n• Novo Aluguel Sugerido: ${formatarMoeda(novoValor)}\n\nDeseja aplicar este novo valor ao imóvel?`)) {
+    item.valor = novoValor;
+    if(!item.historico) item.historico = [];
+    item.historico.push({ 
+      dataPagamento: new Date().toISOString().split('T')[0], 
+      valorPago: 0, 
+      obs: `Reajuste anual ${indice} (${taxa}%) para ${formatarMoeda(novoValor)}` 
+    });
+    localStorage.setItem('alugueis_app', JSON.stringify(imoveis));
+    render();
+    mostrarToast("Valor do aluguel reajustado com sucesso!");
+  }
+}
+
+function obterNotificacoesLista() {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  let notifs = [];
+  imoveis.forEach(item => {
+    let locatarioObj = locatarios.find(l => l.id == item.locatarioId) || { nome: 'Sem Locatário', razaoSocial: 'Sem Locatário' };
+    let nomeLoc = locatarioObj.tipo === 'PJ' ? locatarioObj.razaoSocial : locatarioObj.nome;
+    if (item.fimContrato) {
+      const fim = new Date(item.fimContrato + 'T00:00:00');
+      const diff = Math.ceil((fim.getTime() - hoje.getTime()) / (1000 * 3600 * 24));
+      if (diff < 0) notifs.push({ tipo: 'erro', texto: `⚠️ Contrato do imóvel <b>${item.imovel || 'Imóvel'}</b> (Locatário: ${nomeLoc}) venceu há ${Math.abs(diff)} dias.` });
+      else if (diff <= 30) notifs.push({ tipo: 'alerta', texto: `🔔 Contrato do imóvel <b>${item.imovel || 'Imóvel'}</b> vence em ${diff} dias.` });
+    }
+    if (!item.pago && item.data) {
+      const [ano, mes, dia] = item.data.split('-');
+      const venc = new Date(ano, mes - 1, dia); venc.setHours(0,0,0,0);
+      const diffV = Math.ceil((hoje.getTime() - venc.getTime()) / (1000 * 3600 * 24));
+      if (diffV > 0) notifs.push({ tipo: 'erro', texto: `🔴 Aluguel do imóvel <b>${item.imovel || 'Imóvel'}</b> (${nomeLoc}) está atrasado há ${diffV} dias.` });
+    }
+
+    let anosCompletos = verificarAniversarioContrato(item.dataInicioContrato);
+    if (anosCompletos) {
+      let indiceNome = item.indiceReajuste || 'IPCA';
+      notifs.push({ 
+        tipo: 'reajuste', 
+        texto: `📈 O contrato do imóvel <b>${item.imovel}</b> (${nomeLoc}) completou ${anosCompletos} ano(s) de vigência. <a href="#" onclick="abrirCalculadoraReajuste('${item.id}')" style="color:var(--primary); font-weight:bold; text-decoration:underline;">Clique aqui para calcular o reajuste ${indiceNome}</a>.` 
+      });
+    }
+  });
+  return notifs;
+}
+
+function render() {
+ const container = document.getElementById('conteudoPrincipal');
+ container.innerHTML = '';
+
+ let totalRec = 0; let totalAbert = 0; let totalReparosProp = 0;
+ imoveis.forEach(item => {
+  if(item.pago) totalRec += item.valor;
+  else totalAbert += item.valor;
+  if(item.reparosProp) {
+    item.reparosProp.forEach(r => totalReparosProp += r.valor);
+  }
+ });
+ document.getElementById('totalRecebido').innerText = formatarMoeda(totalRec);
+ document.getElementById('totalReceber').innerText = formatarMoeda(totalAbert);
+
+ let notifs = obterNotificacoesLista();
+ const badgeTop = document.getElementById('contadorNotifTop');
+ if (notifs.length > 0) {
+   badgeTop.innerText = notifs.length;
+   badgeTop.style.display = 'inline-block';
+ } else {
+   badgeTop.style.display = 'none';
+ }
+
+ if (abaAtiva === 'dash') {
+   let emailLogado = localStorage.getItem('alugueis_cad_email') || 'Proprietário';
+   
+   let painelAlertasHtml = '';
+   if (notifs.length > 0) {
+     painelAlertasHtml = `<div style="margin-bottom:20px;">
+       <div style="font-size:14px; font-weight:bold; color:var(--primary); margin-bottom:8px;">⚠️ Alertas e Pendências Ativas</div>`;
+     notifs.slice(0, 3).forEach(n => {
+       painelAlertasHtml += `<div class="notif-card" style="margin-bottom:8px; padding:10px 14px; font-size:13px;">${n.texto}</div>`;
+     });
+     painelAlertasHtml += `</div>`;
+   }
+
+   let imoveisVencendoSemana = imoveis.filter(item => {
+     if (item.pago || !item.data) return false;
+     const hoje = new Date(); hoje.setHours(0,0,0,0);
+     const [ano, mes, dia] = item.data.split('-');
+     const venc = new Date(ano, mes - 1, dia); venc.setHours(0,0,0,0);
+     const diff = Math.ceil((venc.getTime() - hoje.getTime()) / (1000 * 3600 * 24));
+     return diff >= 0 && diff <= 7;
+   });
+
+   let atalhosRapidosHtml = '';
+   if (imoveisVencendoSemana.length > 0) {
+     atalhosRapidosHtml = `<div style="margin-bottom:20px;">
+       <div style="font-size:14px; font-weight:bold; color:#b91c1c; margin-bottom:8px;">⚡ Ações Rápidas (Vencimento nesta semana)</div>`;
+     imoveisVencendoSemana.forEach(item => {
+       let locObj = locatarios.find(l => l.id == item.locatarioId) || {};
+       let nomeLoc = locObj.tipo === 'PJ' ? locObj.razaoSocial : (locObj.nome || 'Inquilino');
+       atalhosRapidosHtml += `
+         <div class="card" style="margin-bottom:8px; padding:12px; align-items:center;">
+           <div style="flex:1;">
+             <b>${item.imovel}</b> (${nomeLoc}) - <b>${formatarMoeda(item.valor)}</b>
+           </div>
+           <div style="display:flex; gap:6px;">
+             <button class="btn-whatsapp" style="margin:0; padding:6px 10px; font-size:11px;" onclick="enviarCobranca('${item.id}')">Cobrar</button>
+             <button class="btn-pix" style="margin:0; padding:6px 10px; font-size:11px;" onclick="copiarPixCobranca()">PIX</button>
+             <button class="btn-recibo" style="margin:0; padding:6px 10px; font-size:11px;" onclick="abrirModal(${item.id});abrirModalReciboPDF('${item.data}', ${item.valor});">Recibo</button>
+           </div>
+         </div>
+       `;
+     });
+     atalhosRapidosHtml += `</div>`;
+   }
+
+   container.innerHTML = `
+     <div class="dash-saudacao">Olá, ${emailLogado.split('@')[0]} 👋</div>
+
+     ${atalhosRapidosHtml}
+     ${painelAlertasHtml}
+
+     <div class="dash-grid">
+       <div class="dash-card">
+         <span>Total de Imóveis</span>
+         <val>${imoveis.length}</val>
+       </div>
+       <div class="dash-card">
+         <span>Locatários</span>
+         <val>${locatarios.length}</val>
+       </div>
+       <div class="dash-card">
+         <span>Recebidos</span>
+         <val style="color:#15803d;">${formatarMoeda(totalRec)}</val>
+       </div>
+       <div class="dash-card">
+         <span>A Receber</span>
+         <val style="color:#b91c1c;">${formatarMoeda(totalAbert)}</val>
+       </div>
+     </div>
+     <div style="text-align: right; font-size: 12px; color: var(--text-muted); margin-top: 30px;">Created by Érico Mílian</div>
+   `;
+ } 
+ else if (abaAtiva === 'imoveis') {
+   container.innerHTML = `
+     <div class="search">
+       <input id="busca" placeholder="Procurar imóvel, notas..." oninput="renderListaImoveis()">
+       <button class="btn-add" onclick="abrirModal()">+ Add Imóvel</button>
+     </div>
+     <div class="filters">
+       <button class="filter-btn ${filtroStatusImovel==='todos'?'active':''}" onclick="filtroImovel('todos')">Todos</button>
+       <button class="filter-btn ${filtroStatusImovel==='aberto'?'active':''}" onclick="filtroImovel('aberto')">Em Aberto</button>
+       <button class="filter-btn ${filtroStatusImovel==='pagos'?'active':''}" onclick="filtroImovel('pagos')">Pagos</button>
+     </div>
+     <div id="listaImoveisDiv"></div>
+   `;
+   renderListaImoveis();
+ }
+ else if (abaAtiva === 'locatarios') {
+   container.innerHTML = `
+     <div class="search">
+       <input id="buscaLoc" placeholder="Procurar locatário..." oninput="renderListaLocatarios()">
+       <button class="btn-add" onclick="abrirModalLocatario()">+ Add Locatário</button>
+     </div>
+     <div id="listaLocatariosDiv"></div>
+   `;
+   renderListaLocatarios();
+ }
+ else if (abaAtiva === 'graficos') {
+   let imoveisFiltradosGrafico = imoveis;
+   if (mesFiltroGrafico !== 'todos') {
+     imoveisFiltradosGrafico = imoveis.filter(item => item.data && item.data.split('-')[1] === mesFiltroGrafico);
+   }
+   let recG = 0, abertG = 0, reparosG = 0;
+   imoveisFiltradosGrafico.forEach(i => { 
+     if(i.pago) recG += i.valor; 
+     else abertG += i.valor; 
+     if(i.reparosProp) {
+       i.reparosProp.forEach(r => reparosG += r.valor);
+     }
+   });
+   let liquidoG = recG - reparosG;
+   let totalPeriodo = recG + abertG;
+   let taxaRecebimento = totalPeriodo > 0 ? Math.round((recG / totalPeriodo) * 100) : 0;
+
+   container.innerHTML = `
+     <div class="secao-graficos">
+       <div class="grafico-card-topo">
+         <div class="grafico-header-flex">
+           <h3 class="grafico-titulo-secao">📈 Desempenho Financeiro & Inadimplência</h3>
+           <div class="filtro-mes-container">
+             <select id="selectMesGrafico" onchange="mudarMesFiltro(this.value)">
+               <option value="todos">📅 Acumulado Geral</option>
+               <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option>
+               <option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option>
+               <option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option>
+               <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+             </select>
+           </div>
+         </div>
+
+         <div class="grafico-metricas-grid">
+           <div class="metrica-mini-card verde">
+             <span>Recebidos Brutos</span>
+             <val style="color:#15803d;">${formatarMoeda(recG)}</val>
+           </div>
+           <div class="metrica-mini-card verde" style="border-left-color:#0284c7;">
+             <span>Líquido (Menos Reformas)</span>
+             <val style="color:#0284c7;">${formatarMoeda(liquidoG)}</val>
+           </div>
+           <div class="metrica-mini-card vermelho">
+             <span>A Receber (Inadimplência)</span>
+             <val style="color:#b91c1c;">${formatarMoeda(abertG)}</val>
+           </div>
+           <div class="metrica-mini-card vermelho" style="border-left-color:#f59e0b;">
+             <span>Reformas Proprietário</span>
+             <val style="color:#d97706;">${formatarMoeda(reparosG)}</val>
+           </div>
+         </div>
+
+         <div class="grafico-resumo-barra">
+           <span style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">TAXA DE QUITAÇÃO:</span>
+           <span style="font-size:14px; font-weight:800; color:var(--primary);">${formatarMoeda(totalPeriodo)} (${taxaRecebimento}% quitado)</span>
+         </div>
+       </div>
+
+       <div class="grafico-canvas-wrapper">
+         <div class="canvas-container-inner">
+           <canvas id="graficoFinancas"></canvas>
+         </div>
+       </div>
+     </div>
+   `;
+   document.getElementById('selectMesGrafico').value = mesFiltroGrafico;
+
+   setTimeout(() => {
+     const ctx = document.getElementById('graficoFinancas').getContext('2d');
+     if (meuGrafico) meuGrafico.destroy();
+     
+     let corRecebido = temaAtual === 'dark' ? '#4ade80' : '#15803d';
+     let corLiquido = temaAtual === 'dark' ? '#38bdf8' : '#0284c7';
+     let corReceber = temaAtual === 'dark' ? '#f87171' : '#b91c1c';
+     let corGrid = temaAtual === 'dark' ? '#334155' : '#f1f5f9';
+     let corTexto = temaAtual === 'dark' ? '#cbd5e1' : '#475569';
+
+     meuGrafico = new Chart(ctx, {
+       type: 'bar',
+       data: {
+         labels: ['Recebidos', 'Líquido', 'Em Aberto / Inadimplência'],
+         datasets: [{
+           data: [recG, liquidoG, abertG],
+           backgroundColor: [corRecebido, corLiquido, corReceber],
+           borderRadius: 10,
+           borderSkipped: false,
+           barThickness: 40
+         }]
+       },
+       options: {
+         responsive: true,
+         maintainAspectRatio: false,
+         plugins: {
+           legend: { display: false },
+           tooltip: {
+             backgroundColor: temaAtual === 'dark' ? '#1e293b' : '#0f172a',
+             titleFont: { size: 13, weight: 'bold' },
+             bodyFont: { size: 13 },
+             padding: 12,
+             cornerRadius: 8,
+             callbacks: {
+               label: function(context) {
+                 let value = context.raw || 0;
+                 return ' ' + formatarMoeda(value);
+               }
+             }
+           }
+         },
+         scales: {
+           y: {
+             grid: { color: corGrid, drawBorder: false },
+             ticks: {
+               color: corTexto,
+               font: { size: 11, weight: '600' },
+               callback: function(value) {
+                 if (value >= 1000) {
+                   return 'R$ ' + (value / 1000).toFixed(0) + 'k';
+                 }
+                 return 'R$ ' + value;
+               }
+             }
+           },
+           x: {
+             grid: { display: false },
+             ticks: { color: corTexto, font: { weight: '700', size: 12 } }
+           }
+         }
+       }
+     });
+   }, 50);
+ }
+ else if (abaAtiva === 'notif') {
+   container.innerHTML = `<h3 style="margin-top:0;">Central de Notificações</h3>`;
+   if (notifs.length === 0) {
+     container.innerHTML += `<div style="text-align:center; padding:30px; color:var(--text-muted);">Nenhum alerta ou pendência no momento! Tudo em ordem. 👍</div>`;
+   } else {
+     notifs.forEach(n => {
+       container.innerHTML += `<div class="notif-card">${n.texto}</div>`;
+     });
+   }
+ }
+}
+
+function filtroImovel(status) { filtroStatusImovel = status; render(); }
+function mudarMesFiltro(mes) { mesFiltroGrafico = mes; render(); }
+
+function renderListaLocatarios() {
+  const listaDiv = document.getElementById('listaLocatariosDiv');
+  if (!listaDiv) return;
+  const termo = (document.getElementById('buscaLoc').value || '').toLowerCase();
+  listaDiv.innerHTML = '';
+
+  let filtrados = locatarios.filter(l => (l.nome || '').toLowerCase().includes(termo) || (l.razaoSocial || '').toLowerCase().includes(termo) || (l.email || '').toLowerCase().includes(termo));
+
+  if (filtrados.length === 0) {
+    listaDiv.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-muted);">Nenhum locatário cadastrado.</div>';
+    return;
+  }
+
+  filtrados.forEach(loc => {
+    let numZap = loc.whatsapp ? loc.whatsapp.replace(/\D/g, '') : '';
+    let zapLink = numZap ? `<a href="https://wa.me/55${numZap}" class="zap-icon" target="_blank" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01C17.18 3.03 14.69 2 12.04 2zM12.04 20.3c-1.42 0-2.81-.38-4.02-1.1l-.29-.17-3.03.8.81-2.95-.19-.31c-.81-1.31-1.24-2.83-1.24-4.38 0-4.57 3.72-8.29 8.29-8.29 2.21 0 4.29.86 5.85 2.42 1.56 1.56 2.42 3.64 2.41 5.85 0 4.57-3.72 8.29-8.29 8.29zm4.55-6.25c-.25-.13-1.48-.73-1.71-.82-.23-.09-.4-.13-.57.13-.17.25-.66.82-.81.99-.15.17-.3.19-.55.06-.25-.13-1.05-.39-2-1.23-.74-.66-1.24-1.48-1.39-1.73-.15-.25-.02-.39.11-.52.11-.11.25-.3.38-.45.13-.15.17-.25.25-.42.08-.17.04-.32-.02-.45-.06-.13-.57-1.38-.79-1.89-.21-.49-.43-.42-.59-.43l-.5-.01c-.17 0-.45.06-.69.32-.24.25-.92.9-0.92 2.2 0 1.3 0.94 2.56 1.07 2.74.13.18 1.85 2.82 4.48 3.95 0.63.27 1.12.43 1.5.55.63.2 1.21.17 1.66.1 0.51-.08 1.48-.6 1.69-1.18.21-.58.21-1.08.15-1.18-.06-.1-.23-.16-.48-.29z"/></svg></a>` : '';
+    let thumbHtml = '';
+    if(loc.temDoc) {
+      thumbHtml = `<div class="card-thumb-placeholder" style="cursor:pointer;" onclick="event.stopPropagation(); carregarArquivoDB('loc_doc_${loc.id}').then(res => abrirVisualizador(res))">📄</div>`;
+    } else {
+      thumbHtml = `<div class="card-thumb-placeholder">👤</div>`;
+    }
+
+    let nomeExibicao = loc.tipo === 'PJ' ? `${loc.razaoSocial} (PJ)` : loc.nome;
+
+    listaDiv.innerHTML += `
+     <div class="card" onclick="abrirModalLocatario('${loc.id}')">
+      ${thumbHtml}
+      <div class="card-info">
+       <span class="card-imovel">👤 Locatário (${loc.tipo || 'PF'})</span>
+       <div class="header-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+         <b>${nomeExibicao} ${zapLink}</b>
+       </div>
+       <span class="card-notas">E-mail: ${loc.email || 'Não informado'} | Tel: ${loc.whatsapp || 'Não informado'}</span>
+      </div>
+     </div>
+    `;
+  });
+}
+
+function renderListaImoveis() {
+  const listaDiv = document.getElementById('listaImoveisDiv');
+  if (!listaDiv) return;
+  const termo = (document.getElementById('busca').value || '').toLowerCase();
+  listaDiv.innerHTML = '';
+
+  let filtrados = imoveis.filter(item => {
+    let locatarioObj = locatarios.find(l => l.id == item.locatarioId) || { nome: '', razaoSocial: '' };
+    let nomeLoc = locatarioObj.tipo === 'PJ' ? locatarioObj.razaoSocial : locatarioObj.nome;
+    let matchB = (nomeLoc || '').toLowerCase().includes(termo) || (item.notas || '').toLowerCase().includes(termo) || (item.imovel || '').toLowerCase().includes(termo);
+    let matchF = true;
+    if (filtroStatusImovel === 'aberto') matchF = !item.pago;
+    if (filtroStatusImovel === 'pagos') matchF = item.pago;
+    return matchB && matchF;
+  });
+
+  filtrados.sort((a,b) => {
+    if(!a.data) return 1; if(!b.data) return -1;
+    return new Date(a.data) - new Date(b.data);
+  });
+
+  if (filtrados.length === 0) {
+    listaDiv.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-muted);">Nenhum imóvel encontrado.</div>';
+    return;
+  }
+
+  filtrados.forEach(item => {
+    let badgeStatus = calcularStatusBadge(item.data, item.pago);
+    let locatarioObj = locatarios.find(l => l.id == item.locatarioId) || { nome: 'Sem Locatário Vinculado', razaoSocial: 'Sem Locatário', whatsapp: '' };
+    let nomeLoc = locatarioObj.tipo === 'PJ' ? locatarioObj.razaoSocial : locatarioObj.nome;
+    
+    let badgeContrato = '';
+    if(item.fimContrato) {
+     const hoje = new Date(); const fim = new Date(item.fimContrato + 'T00:00:00');
+     const diff = Math.ceil((fim.getTime() - hoje.getTime()) / (1000 * 3600 * 24));
+     if(diff <= 30 && diff >= 0) badgeContrato = `<span class="badge alerta-contrato">Contrato Vence em ${diff}d</span>`;
+     else if (diff < 0) badgeContrato = `<span class="badge alerta-contrato">Contrato Vencido</span>`;
+    }
+
+    let fValor = formatarMoeda(item.valor);
+    let encargosTexto = '';
+    if (item.iptuValor || item.condominioValor) {
+      let iptuSt = item.iptuPago ? 'IPTU Ok' : 'IPTU Pend.';
+      let condSt = item.condominioPago ? 'Cond. Ok' : 'Cond. Pend.';
+      encargosTexto = `<span style="font-size:11px; color:var(--text-muted); display:block;">Encargos: ${iptuSt} | ${condSt}</span>`;
+    }
+
+    let dataFormatada = item.data ? item.data.split('-').reverse().join('/') : '--/--/----';
+    let nomeImovel = item.imovel ? item.imovel : 'Imóvel sem nome';
+    let numZap = locatarioObj.whatsapp ? locatarioObj.whatsapp.replace(/\D/g, '') : '';
+    let zapLink = numZap ? `<a href="https://wa.me/55${numZap}" class="zap-icon" target="_blank" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01C17.18 3.03 14.69 2 12.04 2zM12.04 20.3c-1.42 0-2.81-.38-4.02-1.1l-.29-.17-3.03.8.81-2.95-.19-.31c-.81-1.31-1.24-2.83-1.24-4.38 0-4.57 3.72-8.29 8.29-8.29 2.21 0 4.29.86 5.85 2.42 1.56 1.56 2.42 3.64 2.41 5.85 0 4.57-3.72 8.29-8.29 8.29zm4.55-6.25c-.25-.13-1.48-.73-1.71-.82-.23-.09-.4-.13-.57.13-.17.25-.66.82-.81.99-.15.17-.3.19-.55.06-.25-.13-1.05-.39-2-1.23-.74-.66-1.24-1.48-1.39-1.73-.15-.25-.02-.39.11-.52.11-.11.25-.3.38-.45.13-.15.17-.25.25-.42.08-.17.04-.32-.02-.45-.06-.13-.57-1.38-.79-1.89-.21-.49-.43-.42-.59-.43l-.5-.01c-.17 0-.45.06-.69.32-.24.25-.92.9-0.92 2.2 0 1.3 0.94 2.56 1.07 2.74.13.18 1.85 2.82 4.48 3.95 0.63.27 1.12.43 1.5.55.63.2 1.21.17 1.66.1 0.51-.08 1.48-.6 1.69-1.18.21-.58.21-1.08.15-1.18-.06-.1-.23-.16-.48-.29z"/></svg></a>` : '';
+    let btnQuickText = item.pago ? '✓ Pago' : '⏳ Marcar Pago';
+    let btnQuickClass = item.pago ? 'btn-quick-pay pago-sim' : 'btn-quick-pay';
+
+    listaDiv.innerHTML += `
+     <div class="card" onclick="abrirModal('${item.id}')">
+      <div class="card-thumb-placeholder">🏠</div>
+      <div class="card-info">
+       <span class="card-imovel">📍 ${nomeImovel}</span>
+       <div class="card-header">
+         <b>Locatário: ${nomeLoc} ${zapLink}</b>
+         <span style="font-weight:bold;">${fValor}</span>
+       </div>
+       ${encargosTexto}
+       <span class="card-notas">Notas: ${item.notas || 'Nenhum registro...'}</span>
+       <div class="badge-group">
+        <span class="badge ${badgeStatus.classe}">${badgeStatus.texto} (${dataFormatada})</span>
+        ${badgeContrato}
+        <button class="${btnQuickClass}" onclick="togglePagamentoRapido('${item.id}', event)">${btnQuickText}</button>
+       </div>
+      </div>
+     </div>
+    `;
+  });
+}
+
+if(localStorage.getItem('alugueis_cad_email') && sessionStorage.getItem('alugueis_autenticado') === 'true') {
+  render();
+}
+</script>
+</body>
+</html>

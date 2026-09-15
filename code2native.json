@@ -1,0 +1,8 @@
+{
+  "commands": {
+    "ANDROID": "gradle assembleDebug"
+  },
+  "artifacts": {
+    "dir": "app/build/outputs/apk"
+  }
+}

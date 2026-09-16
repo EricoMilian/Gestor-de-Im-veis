@@ -1,3 +1,73 @@
+Ir para o conteúdo
+EricoMilian
+Gestor-de-Im-veis
+Navegação do repositório
+Código
+Problemas
+Pull requests
+Agentes
+Ações
+Projetos
+Wiki
+Segurança e qualidade
+Percepções
+Configurações
+Arquivos
+Acesse o arquivo
+t
+T
+aplicativo
+gradle
+README.md
+build.gradle
+code2native.json
+codemagic.yaml
+gradle.properties
+gradlew
+gradlew.bat
+configurações.gradle
+Gestor-de-Im-veis
+/
+codemagic.yaml
+em
+principal
+
+Editar
+
+Pré-visualização
+Modo de recuo
+
+Espaços
+Tamanho do recuo
+
+2
+modo de quebra de linha
+
+Sem embrulho
+Editando o conteúdo do arquivo codemagic.yaml
+  1
+  2
+  3
+  4
+  5
+  6
+  7
+  8
+  9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
 workflows:
   android-apk:
     name: Gestao de Imoveis - APK
@@ -20,3 +90,6 @@ workflows:
 
     artifacts:
       - app/build/outputs/**/*.apk
+
+Use Control + Shift + mpara alternar o tabfoco da tecla. Como alternativa, use escpara tabmover para o próximo elemento interativo na página.
+ 

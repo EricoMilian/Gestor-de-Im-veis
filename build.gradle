@@ -1,3 +1,43 @@
-plugins {
-    id 'com.android.application' version '8.6.1' apply false
+plugins { id 'com.android.application' }
+
+// Evita conflito entre as bibliotecas antigas kotlin-stdlib-jdk7/jdk8
+// e o kotlin-stdlib moderno trazido pelas dependências AndroidX.
+configurations.configureEach {
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+}
+
+android {
+    namespace 'com.gestao.imoveis'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.gestao.imoveis'
+        minSdk 23
+        targetSdk 35
+        versionCode 1
+        versionName '1.0'
+    }
+
+    signingConfigs {
+        release {
+            if (System.getenv()['CI']) {
+                storeFile file(System.getenv()['CM_KEYSTORE_PATH'])
+                storePassword System.getenv()['CM_KEYSTORE_PASSWORD']
+                keyAlias System.getenv()['CM_KEY_ALIAS']
+                keyPassword System.getenv()['CM_KEY_PASSWORD']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.biometric:biometric:1.1.0'
 }

@@ -81,7 +81,7 @@ workflows:
     scripts:
       - name: Configurar Android SDK
         script: |
-          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/local.properties"
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/local.properties
 
       - name: Compilar APK assinado
         script: |
